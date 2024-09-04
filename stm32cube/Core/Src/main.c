@@ -97,6 +97,15 @@ const osThreadAttr_t interfaceTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 
+char spi_buf_set[50], spi_buf_lem[50], spi_buf_mos[50];
+double v_ref = 4.0;
+const double LSB_ADC = (2 * 4.0)/pow(2, 24);
+const uint32_t HALF_CODE = pow(2,24)/2;
+const double LSB_DAC = 4.0/pow(2, 20);
+double lem_v = 10;
+
+double get_adc(int no);
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -174,6 +183,17 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
+
+  // SET_RDL, LEM_RDL, MOS_LDAC, and MOS_CS should be High by default
+//  HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_SET);
+
+  // ADC_CNV should be Low by default
+  HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
+
+  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 
   /* USER CODE END 2 */
 
@@ -726,10 +746,10 @@ static void MX_SPI4_Init(void)
   hspi4.Instance = SPI4;
   hspi4.Init.Mode = SPI_MODE_MASTER;
   hspi4.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi4.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi4.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi4.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi4.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi4.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi4.Init.NSS = SPI_NSS_SOFT;
   hspi4.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi4.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi4.Init.TIMode = SPI_TIMODE_DISABLE;
@@ -1012,7 +1032,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|DAT6_OUT_Pin|DAT7_OUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, USB_OTG_FS_PWR_EN_Pin|L2_LEFT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, USB_OTG_FS_PWR_EN_Pin|ADC_CNV_Pin|L2_LEFT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
@@ -1071,8 +1091,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : USB_OTG_FS_PWR_EN_Pin L2_LEFT_Pin */
-  GPIO_InitStruct.Pin = USB_OTG_FS_PWR_EN_Pin|L2_LEFT_Pin;
+  /*Configure GPIO pins : USB_OTG_FS_PWR_EN_Pin ADC_CNV_Pin L2_LEFT_Pin */
+  GPIO_InitStruct.Pin = USB_OTG_FS_PWR_EN_Pin|ADC_CNV_Pin|L2_LEFT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1109,7 +1129,55 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+double get_adc(int no){
 
+	uint32_t code1 = 0x000000, code2 = 0x000000;
+	double adc1_val, adc2_val;
+
+//	if(no == 1){
+////		HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_RESET);
+////		for(int i=0;i<1;i++);	//to make at least 5 ns delay after busy falling
+////		HAL_SPI_Receive(&hspi6, (uint8_t*)spi_buf_set, 3, 100);
+////		HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_SET);
+////
+////		((uint8_t *)&code1)[2] = (unsigned int)spi_buf_set[0];
+////		((uint8_t *)&code1)[1] = (unsigned int)spi_buf_set[1];
+////		((uint8_t *)&code1)[0] = (unsigned int)spi_buf_set[2];
+////
+////		adc1_val = code1 * LSB_ADC;
+////		if(code1 >= HALF_CODE){
+////
+////			adc1_val -= 2*v_ref;
+////		}
+////		adc1_val = adc1_val/0.377 + 0.04;
+////
+////		return adc1_val;
+//	}else if(no == 2){
+		HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
+//		HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
+		for(int i=0;i<5;i++);
+		HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
+
+		for(int i=0;i<1;i++);	//to make at least 5 ns delay after busy falling
+
+		HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 200);
+//		HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
+
+		((uint8_t *)&code2)[2] = (unsigned int)spi_buf_lem[0];
+		((uint8_t *)&code2)[1] = (unsigned int)spi_buf_lem[1];
+		((uint8_t *)&code2)[0] = (unsigned int)spi_buf_lem[2];
+
+		adc2_val = code2* LSB_ADC;
+		if(code2 >= HALF_CODE){
+			adc2_val -= 2*v_ref;
+		}
+		adc2_val = adc2_val/0.377 + 0.04;
+
+		HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+		return adc2_val;
+//	}
+//	return 0;
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1141,10 +1209,11 @@ void StartDefaultTask(void *argument)
 void StartInterfaceTask(void *argument)
 {
   /* USER CODE BEGIN StartInterfaceTask */
-	char msg[] = "Hello from UART3!\r\n";
+	char msg[50];
   /* Infinite loop */
   for(;;)
   {
+	sprintf(msg, "lem_v: %f\r\n", lem_v);
 	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	  	  //HAL_Delay(1000);
     osDelay(2000);

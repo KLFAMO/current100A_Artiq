@@ -133,6 +133,8 @@ void Error_Handler(void);
 #define SCPI_RX_GPIO_Port GPIOD
 #define SET_SCK_Pin GPIO_PIN_3
 #define SET_SCK_GPIO_Port GPIOD
+#define ADC_CNV_Pin GPIO_PIN_4
+#define ADC_CNV_GPIO_Port GPIOD
 #define L2_LEFT_Pin GPIO_PIN_6
 #define L2_LEFT_GPIO_Port GPIOD
 #define LEM_BUSY_Pin GPIO_PIN_7
