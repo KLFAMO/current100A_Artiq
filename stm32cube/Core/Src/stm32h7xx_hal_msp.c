@@ -499,26 +499,18 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     __HAL_RCC_SPI2_CLK_ENABLE();
 
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     /**SPI2 GPIO Configuration
     PC2_C     ------> SPI2_MISO
-    PB12     ------> SPI2_NSS
+    PC3_C     ------> SPI2_MOSI
     PD3     ------> SPI2_SCK
     */
-    GPIO_InitStruct.Pin = SET_ADC_Pin;
+    GPIO_InitStruct.Pin = SET_ADC_Pin|GPIO_PIN_3;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-    HAL_GPIO_Init(SET_ADC_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = SET_RDL_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-    HAL_GPIO_Init(SET_RDL_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = SET_SCK_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -551,11 +543,11 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 
     __HAL_RCC_GPIOE_CLK_ENABLE();
     /**SPI4 GPIO Configuration
-    PE11     ------> SPI4_NSS
+    PE6     ------> SPI4_MOSI
     PE12     ------> SPI4_SCK
     PE13     ------> SPI4_MISO
     */
-    GPIO_InitStruct.Pin = LEM_RDL_Pin|LEM_SCK_Pin|LEM_ADC_Pin;
+    GPIO_InitStruct.Pin = GPIO_PIN_6|LEM_SCK_Pin|LEM_ADC_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -644,12 +636,10 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 
     /**SPI2 GPIO Configuration
     PC2_C     ------> SPI2_MISO
-    PB12     ------> SPI2_NSS
+    PC3_C     ------> SPI2_MOSI
     PD3     ------> SPI2_SCK
     */
-    HAL_GPIO_DeInit(SET_ADC_GPIO_Port, SET_ADC_Pin);
-
-    HAL_GPIO_DeInit(SET_RDL_GPIO_Port, SET_RDL_Pin);
+    HAL_GPIO_DeInit(GPIOC, SET_ADC_Pin|GPIO_PIN_3);
 
     HAL_GPIO_DeInit(SET_SCK_GPIO_Port, SET_SCK_Pin);
 
@@ -666,11 +656,11 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
     __HAL_RCC_SPI4_CLK_DISABLE();
 
     /**SPI4 GPIO Configuration
-    PE11     ------> SPI4_NSS
+    PE6     ------> SPI4_MOSI
     PE12     ------> SPI4_SCK
     PE13     ------> SPI4_MISO
     */
-    HAL_GPIO_DeInit(GPIOE, LEM_RDL_Pin|LEM_SCK_Pin|LEM_ADC_Pin);
+    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_6|LEM_SCK_Pin|LEM_ADC_Pin);
 
   /* USER CODE BEGIN SPI4_MspDeInit 1 */
 
