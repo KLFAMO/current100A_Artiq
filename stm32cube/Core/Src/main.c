@@ -102,11 +102,16 @@ double v_ref = 4.0;
 const double LSB_ADC = (2 * 4.0)/pow(2, 24);
 const uint32_t HALF_CODE = pow(2,24)/2;
 const double LSB_DAC = 4.0/pow(2, 20);
-double lem_v = 10;
+double lem_v = 0;
+double lem_A = 0;
+double set_v = 0;
+double in_set_v = 0;
 double mos_v = 0;
 
 double get_adc_lem();
 double get_adc_set();
+double get_set_V();
+double get_lem_A();
 void set_dac_mos(double dac);
 
 /* USER CODE END PV */
@@ -1176,8 +1181,8 @@ double get_adc_lem(){
 	if(code >= HALF_CODE){
 		adc_val -= 2*v_ref;
 	}
-	adc_val = adc_val/0.377 + 0.04;
-//	adc2_val = (adc2_val/0.377)*1000;
+//	adc_val = adc_val/0.377 + 0.04;
+//	adc_val = (adc_val/0.377)*1000;
 
 //	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 	return adc_val;
@@ -1203,34 +1208,33 @@ double get_adc_set(){
 	    }
 
 	 while (HAL_GPIO_ReadPin(SET_BUSY_GPIO_Port, SET_BUSY_Pin) == GPIO_PIN_SET) {
-	         // Czekaj na zakończenie konwersji
 	     }
+
 	 HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
 	 HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_RESET);
 
 	HAL_SPI_Receive(&hspi2, (uint8_t*)spi_buf_set, 3, 200);
 	HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_SET);
 
-
 	((uint8_t *)&code)[2] = (unsigned int)spi_buf_set[0];
 	((uint8_t *)&code)[1] = (unsigned int)spi_buf_set[1];
 	((uint8_t *)&code)[0] = (unsigned int)spi_buf_set[2];
 
 	adc_val = code* LSB_ADC;
-//	if(code >= HALF_CODE){
-//		adc_val -= 2*v_ref;
-//	}
-//	adc_val = adc_val/0.377 + 0.04;
-//	adc2_val = (adc2_val/0.377)*1000;
-
-//	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-//	lem_v=lem_v+1;
-//	adc_val = lem_v;
-//	adc_val_int=(int)(adc_val*1000);
-//	sprintf(msg, "adc_val: %d mV\r\n", adc_val_int);
-//	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	if(code >= HALF_CODE){
+		adc_val -= 2*v_ref;
+	}
 	return adc_val;
+}
 
+double get_set_V(){
+	set_v = get_adc_set();
+	return set_v * 2.5;
+}
+
+double get_lem_A(){
+	lem_v = get_adc_lem();
+	return lem_v*30.77-0.18;
 }
 
 void set_dac_mos(double dac){
@@ -1275,10 +1279,11 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
 //	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-	  lem_v = get_adc_set();
+	  lem_A = get_lem_A();
+	  in_set_v = get_set_V();
 //	  HAL_Delay(500);
 	  osDelay(1000);
-	  set_dac_mos(0);
+	  set_dac_mos(1.5);
   }
   /* USER CODE END 5 */
 }
@@ -1297,9 +1302,17 @@ void StartInterfaceTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-
+	sprintf(msg, "-----------------------\r\n");
+	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "lem_v: %d\r\n", (int)(lem_v*1000));
 	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "lem_A: %d\r\n", (int)(lem_A*1000));
+	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "set_adc_v: %d\r\n", (int)(set_v*1000));
+	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "in_set_v: %d\r\n", (int)(in_set_v*1000));
+	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
 	  	  HAL_Delay(1000);
 //    osDelay(2000);
   }
