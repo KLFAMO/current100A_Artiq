@@ -103,9 +103,11 @@ const double LSB_ADC = (2 * 4.0)/pow(2, 24);
 const uint32_t HALF_CODE = pow(2,24)/2;
 const double LSB_DAC = 4.0/pow(2, 20);
 double lem_v = 10;
+double mos_v = 0;
 
 double get_adc_lem();
 double get_adc_set();
+void set_dac_mos(double dac);
 
 /* USER CODE END PV */
 
@@ -222,7 +224,7 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of interfaceTask */
-  //interfaceTaskHandle = osThreadNew(StartInterfaceTask, NULL, &interfaceTask_attributes);
+  interfaceTaskHandle = osThreadNew(StartInterfaceTask, NULL, &interfaceTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -795,11 +797,11 @@ static void MX_SPI5_Init(void)
   hspi5.Instance = SPI5;
   hspi5.Init.Mode = SPI_MODE_MASTER;
   hspi5.Init.Direction = SPI_DIRECTION_2LINES_TXONLY;
-  hspi5.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi5.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi5.Init.NSS = SPI_NSS_SOFT;
+  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1024,6 +1026,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, L2_RIGHT_Pin|DAT5_OUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -1053,6 +1058,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOS_CS_Pin */
+  GPIO_InitStruct.Pin = MOS_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(MOS_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : L2_RIGHT_Pin DAT5_OUT_Pin */
   GPIO_InitStruct.Pin = L2_RIGHT_Pin|DAT5_OUT_Pin;
@@ -1214,11 +1226,37 @@ double get_adc_set(){
 //	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 //	lem_v=lem_v+1;
 //	adc_val = lem_v;
-	adc_val_int=(int)(adc_val*1000);
-	sprintf(msg, "adc_val: %d mV\r\n", adc_val_int);
-	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+//	adc_val_int=(int)(adc_val*1000);
+//	sprintf(msg, "adc_val: %d mV\r\n", adc_val_int);
+//	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	return adc_val;
 
+}
+
+void set_dac_mos(double dac){
+	uint32_t code;
+
+	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_SET);
+
+	if(dac > v_ref){
+		dac = v_ref;
+	}else if(dac < 0.0){
+		dac = 0.0;
+	}
+	code = round(dac/LSB_DAC);
+	code = code << 4;		// 4 bits shift to left to have 24 bits
+
+	spi_buf_mos[0] = ((uint8_t*)&code)[2];
+	spi_buf_mos[1] = ((uint8_t*)&code)[1];
+	spi_buf_mos[2] = ((uint8_t*)&code)[0];
+
+	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi5, (uint8_t*)&spi_buf_mos, 3, 100);
+	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_SET);
+
+	// update output
+	for(int i=0;i<8;i++);	//to make at least 20 ns delay
+	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
 }
 
 /* USER CODE END 4 */
@@ -1240,6 +1278,7 @@ void StartDefaultTask(void *argument)
 	  lem_v = get_adc_set();
 //	  HAL_Delay(500);
 	  osDelay(1000);
+	  set_dac_mos(0);
   }
   /* USER CODE END 5 */
 }
@@ -1259,7 +1298,7 @@ void StartInterfaceTask(void *argument)
   for(;;)
   {
 
-	sprintf(msg, "lem_v: %f\r\n", lem_v);
+	sprintf(msg, "lem_v: %d\r\n", (int)(lem_v*1000));
 	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	  	  HAL_Delay(1000);
 //    osDelay(2000);
