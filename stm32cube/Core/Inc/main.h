@@ -57,6 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SET_BUSY_Pin GPIO_PIN_6
+#define SET_BUSY_GPIO_Port GPIOE
 #define SET_ADC_Pin GPIO_PIN_2
 #define SET_ADC_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
@@ -75,8 +77,14 @@ void Error_Handler(void);
 #define STLINK_RX_GPIO_Port GPIOD
 #define STLINK_TX_Pin GPIO_PIN_9
 #define STLINK_TX_GPIO_Port GPIOD
+#define LEM_OK_Pin GPIO_PIN_13
+#define LEM_OK_GPIO_Port GPIOD
 #define SET_SCK_Pin GPIO_PIN_3
 #define SET_SCK_GPIO_Port GPIOD
+#define ADC_CNV_Pin GPIO_PIN_4
+#define ADC_CNV_GPIO_Port GPIOD
+#define LEM_BUSY_Pin GPIO_PIN_7
+#define LEM_BUSY_GPIO_Port GPIOD
 #define LD2_Pin GPIO_PIN_1
 #define LD2_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
