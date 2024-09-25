@@ -50,6 +50,7 @@
 
 SPI_HandleTypeDef hspi2;
 SPI_HandleTypeDef hspi4;
+SPI_HandleTypeDef hspi5;
 
 TIM_HandleTypeDef htim7;
 
@@ -59,6 +60,21 @@ UART_HandleTypeDef huart3;
 //int sock, g;						<----
 //struct sockaddr_in address;      <---
 //err_t err = -1;					<----
+
+char spi_buf_set[50], spi_buf_lem[50], spi_buf_mos[50];
+double v_ref = 4.0;
+const double LSB_ADC = (2 * 4.0)/pow(2, 24);
+const uint32_t HALF_CODE = pow(2,24)/2;
+const double LSB_DAC = 4.0/pow(2, 20);
+double lem_v = 0;
+double lem_A = 0;
+double set_v = 0;
+double in_set_v = 0;
+double mos_v = 0;
+double err = 0;
+double acc_err = 0;
+double pid_out = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +85,7 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM7_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_SPI4_Init(void);
+static void MX_SPI5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -124,6 +141,7 @@ int main(void)
   MX_TIM7_Init();
   MX_SPI2_Init();
   MX_SPI4_Init();
+  MX_SPI5_Init();
   /* USER CODE BEGIN 2 */
 
   tcp_server_init();
@@ -302,6 +320,54 @@ static void MX_SPI4_Init(void)
 }
 
 /**
+  * @brief SPI5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI5_Init(void)
+{
+
+  /* USER CODE BEGIN SPI5_Init 0 */
+
+  /* USER CODE END SPI5_Init 0 */
+
+  /* USER CODE BEGIN SPI5_Init 1 */
+
+  /* USER CODE END SPI5_Init 1 */
+  /* SPI5 parameter configuration*/
+  hspi5.Instance = SPI5;
+  hspi5.Init.Mode = SPI_MODE_MASTER;
+  hspi5.Init.Direction = SPI_DIRECTION_2LINES_TXONLY;
+  hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi5.Init.NSS = SPI_NSS_SOFT;
+  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi5.Init.CRCPolynomial = 0x0;
+  hspi5.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi5.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+  hspi5.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi5.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi5.Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi5.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi5.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi5.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi5.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi5.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  if (HAL_SPI_Init(&hspi5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI5_Init 2 */
+
+  /* USER CODE END SPI5_Init 2 */
+
+}
+
+/**
   * @brief TIM7 Initialization Function
   * @param None
   * @retval None
@@ -399,6 +465,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();

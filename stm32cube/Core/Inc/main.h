@@ -59,6 +59,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SET_BUSY_Pin GPIO_PIN_6
 #define SET_BUSY_GPIO_Port GPIOE
+#define MOS_CLK_Pin GPIO_PIN_7
+#define MOS_CLK_GPIO_Port GPIOF
+#define MOS_DATA_Pin GPIO_PIN_9
+#define MOS_DATA_GPIO_Port GPIOF
 #define SET_ADC_Pin GPIO_PIN_2
 #define SET_ADC_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
