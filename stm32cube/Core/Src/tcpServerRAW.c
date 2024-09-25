@@ -489,7 +489,7 @@ static void tcp_server_handle (struct tcp_pcb *tpcb, struct tcp_server_struct *e
 	cmd_string_interpret(buf, ans);
 	//strcat(ans,"\nhello");
 
-	strcat (ans,"\nnucleo>");
+	strcat (ans,"\ncurrent100A_Artiq>");
 
 
 	esTx->p->payload = (void *)ans;

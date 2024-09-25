@@ -61,6 +61,12 @@ void Error_Handler(void);
 #define SET_ADC_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
 #define LD1_GPIO_Port GPIOB
+#define LEM_RDL_Pin GPIO_PIN_11
+#define LEM_RDL_GPIO_Port GPIOE
+#define LEM_SCK_Pin GPIO_PIN_12
+#define LEM_SCK_GPIO_Port GPIOE
+#define LEM_ADC_Pin GPIO_PIN_13
+#define LEM_ADC_GPIO_Port GPIOE
 #define SET_RDL_Pin GPIO_PIN_12
 #define SET_RDL_GPIO_Port GPIOB
 #define LD3_Pin GPIO_PIN_14
