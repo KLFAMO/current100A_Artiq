@@ -387,7 +387,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 24000;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 10000;
+  htim7.Init.Period = 5000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -614,6 +614,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //
 //	  send_test();
 //	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
+	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     }
   /* USER CODE END Callback 1 */
 }
