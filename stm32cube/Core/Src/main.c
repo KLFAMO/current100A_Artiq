@@ -6,30 +6,29 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2022 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "lwip.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "lwip/sockets.h"
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "cmd_parser.h"
+//#include "lwip/sockets.h"          <----
+//#include <string.h>
+#include "tcpServerRAW.h"
+//#include "tcpClientRAW.h"
+#include "interface.h"
+//#include <stdio.h>
+//#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,8 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PORT	22
-#define MAX(a,b) (((a)>(b))?(a):(b))
+//#define PORT	5015          <----
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,19 +48,16 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+SPI_HandleTypeDef hspi2;
+
+TIM_HandleTypeDef htim7;
+
 UART_HandleTypeDef huart3;
 
-osThreadId StartHandle;
 /* USER CODE BEGIN PV */
-osThreadId ClientHandle;
-int sock;
-struct sockaddr_in address;
-err_t err = -1;
-
-char uart_bufT[1000];
-//char uart_bufR[100];
-int uart_buf_len;
-
+//int sock, g;						<----
+//struct sockaddr_in address;      <---
+//err_t err = -1;					<----
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,16 +65,18 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
-void StartThread(void const * argument);
-
+static void MX_TIM7_Init(void);
+static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
-void AcceptanceNewClient(void const * argument);
-void debug_msg(char * msg);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+extern struct netif gnetif;
+extern parameters par;
+int32_t raw;
 /* USER CODE END 0 */
 
 /**
@@ -90,11 +87,11 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
-/* Enable the CPU Cache */
 
   /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
@@ -121,41 +118,20 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_LWIP_Init();
+  MX_TIM7_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
-  debug_msg("******** Start Nucleo ******************");
-  init_params();
+
+  tcp_server_init();
+  //tcp_client_init();
+  tcp_server_init();
+  initInterface();
+
+  HAL_TIM_Base_Start_IT(&htim7);
 
   /* USER CODE END 2 */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* definition and creation of Start */
-  osThreadDef(Start, StartThread, osPriorityNormal, 0, 512);
-  StartHandle = osThreadCreate(osThread(Start), NULL);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -163,7 +139,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	  ethernetif_input(&gnetif);
+	  sys_check_timeouts();
+
+	}
   /* USER CODE END 3 */
 }
 
@@ -179,13 +158,11 @@ void SystemClock_Config(void)
   /** Supply configuration update enable
   */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
-
   /** Configure the main internal regulator output voltage
   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
-
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -194,8 +171,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 19;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 10;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
@@ -206,7 +183,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -224,6 +200,92 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 0x0;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+  hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi2.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi2.Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi2.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi2.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi2.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi2.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
+
+  /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 24000;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 10000;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
+
 }
 
 /**
@@ -282,8 +344,6 @@ static void MX_USART3_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -320,91 +380,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 7, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
 
-void AcceptanceNewClient(void const * argument)
-{
-	char msg[100] = {};
-	char send_msg[100] = {};
-	char umsg[100] = {};
-	int state = 1;
-	int conn = *(int *)argument;
-
-	debug_msg("acceptancenewclient");
-	while(1)
-	{
-		memset(msg, 0, sizeof msg);
-		memset(send_msg, 0, sizeof send_msg);
-		state = read(conn, (char*)msg, sizeof(msg)-1);
-		sprintf(umsg, "state= %d", state);
-		debug_msg(umsg);
-
-		if(state <= 0){
-			close(conn);
-			osThreadTerminate(NULL);
-		}
-		else{
-			cmd_parse(msg, send_msg);
-			write(conn, send_msg, strlen(send_msg));
-		}
-		osDelay(100);
-	}
-}
-
-void debug_msg(char * msg){
-	uart_buf_len = sprintf(uart_bufT, "%s \r\n", msg);
-	HAL_UART_Transmit(&huart3, (uint8_t*)uart_bufT, uart_buf_len, 100);
-}
 /* USER CODE END 4 */
-
-/* USER CODE BEGIN Header_StartThread */
-/**
-  * @brief  Function implementing the Start thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartThread */
-void StartThread(void const * argument)
-{
-  /* init code for LWIP */
-  MX_LWIP_Init();
-  /* USER CODE BEGIN 5 */
-
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-
-  address.sin_family = AF_INET;
-  address.sin_port = htons(PORT);
-  address.sin_addr.s_addr = INADDR_ANY;
-
-  err = bind(sock, (struct sockaddr *)&address, sizeof (address));
-  err = listen(sock, 0);
-
-  // create the acceptance thread
-  osThreadDef(Acceptance, AcceptanceNewClient, osPriorityLow, 0, configMINIMAL_STACK_SIZE * 4);
-
-  /* Infinite loop */
-  for(;;)
-  {
-		int g =  accept(sock, NULL, NULL);
-		if(g < 0){
-			osDelay(100);
-			continue;
-		}
-		ClientHandle = osThreadCreate(osThread(Acceptance), &g);
-		debug_msg("new connection...! \r\n");
-		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-		osDelay(100);
-  }
-  /* USER CODE END 5 */
-}
 
 /* MPU Configuration */
 
@@ -414,7 +394,6 @@ void MPU_Config(void)
 
   /* Disables the MPU */
   HAL_MPU_Disable();
-
   /** Initializes and configures the Region and the memory to be protected
   */
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
@@ -430,7 +409,6 @@ void MPU_Config(void)
   MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
-
   /** Initializes and configures the Region and the memory to be protected
   */
   MPU_InitStruct.Number = MPU_REGION_NUMBER1;
@@ -458,12 +436,43 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
 
+
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM6) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM7) {
 
+//	  //HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+//	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+//
+//	  raw = (int32_t) ( ((0xfff+1)/3.3) * ((par.dac.ch1.volt.val+3.3)/2) ) ;
+//	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, raw);
+//
+//	  raw = (int32_t) ( ((0xfff+1)/3.3) * ((par.dac.ch2.volt.val+3.3)/2) ) ;
+//	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, raw);
+//
+//
+//
+//	  HAL_ADC_ConfigChannel(&hadc3, &sConfig1);
+//	  HAL_ADC_Start(&hadc3);
+//	  if (HAL_ADC_PollForConversion(&hadc3, 100) == HAL_OK ){
+//		  par.adc.ch1.raw.val = (double) HAL_ADC_GetValue(&hadc3) ;
+//		  par.adc.ch1.volt.val = 3.3 * par.adc.ch1.raw.val / 0xffff;
+//	  }
+//
+//
+//	  HAL_ADC_ConfigChannel(&hadc3, &sConfig2);
+//	  HAL_ADC_Start(&hadc3);
+//	  if (HAL_ADC_PollForConversion(&hadc3, 100) == HAL_OK ){
+//		  par.adc.ch2.raw.val = (double) HAL_ADC_GetValue(&hadc3) ;
+//		  par.adc.ch2.volt.val = 3.3 * par.adc.ch2.raw.val / 0xffff;
+//	  }
+//
+//	  send_test();
+//	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
+    }
   /* USER CODE END Callback 1 */
 }
 
@@ -498,3 +507,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
