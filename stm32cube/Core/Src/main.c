@@ -399,7 +399,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 24000;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 5000;
+  htim7.Init.Period = 1000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -658,19 +658,20 @@ double get_adc_set(){
 
 double get_set_V(){
 	set_v = get_adc_set();
-	return set_v * 2.5;
+	return (set_v - 0.007) * 3.316;
 }
 
 double get_lem_A(){
 	lem_v = get_adc_lem();
-	return lem_v*30.77-0.15;
+//	return lem_v*30.77-0.15;
+	return (lem_v - 0.00478 )*41.363;
 }
 
 void set_dac_mos(double dac){
 	uint32_t code;
 
 	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_SET);
-
+	dac = dac/2;
 	if(dac > v_ref){
 		dac = v_ref;
 	}else if(dac < 0.0){
@@ -752,16 +753,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
 
-	  send_adc_cnvs(2);
+	  send_adc_cnvs(100);
 	  lem_A = get_lem_A();
 	  in_set_v = get_set_V();
 	  par.adc.ch1.volt.val = in_set_v;
 	  par.adc.ch2.volt.val = lem_A;
-//	  err = lem_A - in_set_v*10;
-//	  acc_err = acc_err + err;
-//	  pid_out = acc_err*(-0.03);
-//	  set_dac_mos(pid_out);
-	  set_dac_mos(par.dac.ch1.volt.val);
+	  err = lem_A - in_set_v*10;
+	  acc_err = acc_err + err;
+	  pid_out = acc_err*(-0.03);
+	  set_dac_mos(pid_out);
+//	  set_dac_mos(par.dac.ch1.volt.val);
 
 	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     }
