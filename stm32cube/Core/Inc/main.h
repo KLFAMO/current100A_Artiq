@@ -57,7 +57,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define SET_BUSY_Pin GPIO_PIN_6
+#define SET_BUSY_Pin GPIO_PIN_4
 #define SET_BUSY_GPIO_Port GPIOE
 #define MOS_CLK_Pin GPIO_PIN_7
 #define MOS_CLK_GPIO_Port GPIOF
