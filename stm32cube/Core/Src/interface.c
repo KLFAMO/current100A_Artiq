@@ -135,8 +135,8 @@ void initInterface(void)
   par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
   par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
   par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
-  par.dac.ch1.volt = (value){.val = 0, .min = -3.2, .max = 3.2};
-  par.dac.ch2.volt = (value){.val = 0, .min = -3.2, .max = 3.2};
+  par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
+  par.dac.ch2.volt = (value){.val = 0, .min = 0, .max = 5};
 
 
 }

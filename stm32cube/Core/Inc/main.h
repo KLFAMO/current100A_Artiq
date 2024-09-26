@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SET_BUSY_Pin GPIO_PIN_4
 #define SET_BUSY_GPIO_Port GPIOE
+#define MOS_CS_Pin GPIO_PIN_6
+#define MOS_CS_GPIO_Port GPIOF
 #define MOS_CLK_Pin GPIO_PIN_7
 #define MOS_CLK_GPIO_Port GPIOF
 #define MOS_DATA_Pin GPIO_PIN_9
@@ -83,6 +85,8 @@ void Error_Handler(void);
 #define STLINK_TX_GPIO_Port GPIOD
 #define LEM_OK_Pin GPIO_PIN_13
 #define LEM_OK_GPIO_Port GPIOD
+#define MOS_LDAC_Pin GPIO_PIN_2
+#define MOS_LDAC_GPIO_Port GPIOG
 #define SET_SCK_Pin GPIO_PIN_3
 #define SET_SCK_GPIO_Port GPIOD
 #define ADC_CNV_Pin GPIO_PIN_4

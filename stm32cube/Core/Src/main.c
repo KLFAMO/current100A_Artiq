@@ -79,7 +79,7 @@ double get_adc_lem();
 double get_adc_set();
 double get_set_V();
 double get_lem_A();
-//void set_dac_mos(double dac);
+void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
@@ -485,10 +485,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD1_Pin|SET_RDL_Pin|LD3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, LEM_RDL_Pin|LD2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
@@ -498,6 +504,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SET_BUSY_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOS_CS_Pin */
+  GPIO_InitStruct.Pin = MOS_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(MOS_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD1_Pin LD3_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin;
@@ -525,6 +538,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOS_LDAC_Pin */
+  GPIO_InitStruct.Pin = MOS_LDAC_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(MOS_LDAC_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ADC_CNV_Pin */
   GPIO_InitStruct.Pin = ADC_CNV_Pin;
@@ -646,31 +666,31 @@ double get_lem_A(){
 	return lem_v*30.77-0.15;
 }
 
-//void set_dac_mos(double dac){
-//	uint32_t code;
-//
-//	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_SET);
-//
-//	if(dac > v_ref){
-//		dac = v_ref;
-//	}else if(dac < 0.0){
-//		dac = 0.0;
-//	}
-//	code = round(dac/LSB_DAC);
-//	code = code << 4;		// 4 bits shift to left to have 24 bits
-//
-//	spi_buf_mos[0] = ((uint8_t*)&code)[2];
-//	spi_buf_mos[1] = ((uint8_t*)&code)[1];
-//	spi_buf_mos[2] = ((uint8_t*)&code)[0];
-//
-//	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
-//	HAL_SPI_Transmit(&hspi5, (uint8_t*)&spi_buf_mos, 3, 100);
-//	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_SET);
-//
-//	// update output
-//	for(int i=0;i<8;i++);	//to make at least 20 ns delay
-//	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
-//}
+void set_dac_mos(double dac){
+	uint32_t code;
+
+	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_SET);
+
+	if(dac > v_ref){
+		dac = v_ref;
+	}else if(dac < 0.0){
+		dac = 0.0;
+	}
+	code = round(dac/LSB_DAC);
+	code = code << 4;		// 4 bits shift to left to have 24 bits
+
+	spi_buf_mos[0] = ((uint8_t*)&code)[2];
+	spi_buf_mos[1] = ((uint8_t*)&code)[1];
+	spi_buf_mos[2] = ((uint8_t*)&code)[0];
+
+	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi5, (uint8_t*)&spi_buf_mos, 3, 100);
+	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_SET);
+
+	// update output
+	for(int i=0;i<8;i++);	//to make at least 20 ns delay
+	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
+}
 
 /* USER CODE END 4 */
 
@@ -732,35 +752,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
 
-//	  //HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-//	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
-//
-//	  raw = (int32_t) ( ((0xfff+1)/3.3) * ((par.dac.ch1.volt.val+3.3)/2) ) ;
-//	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, raw);
-//
-//	  raw = (int32_t) ( ((0xfff+1)/3.3) * ((par.dac.ch2.volt.val+3.3)/2) ) ;
-//	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, raw);
-//
-//
-//
-//	  HAL_ADC_ConfigChannel(&hadc3, &sConfig1);
-//	  HAL_ADC_Start(&hadc3);
-//	  if (HAL_ADC_PollForConversion(&hadc3, 100) == HAL_OK ){
-//		  par.adc.ch1.raw.val = (double) HAL_ADC_GetValue(&hadc3) ;
-//		  par.adc.ch1.volt.val = 3.3 * par.adc.ch1.raw.val / 0xffff;
-//	  }
-//
-//
-//	  HAL_ADC_ConfigChannel(&hadc3, &sConfig2);
-//	  HAL_ADC_Start(&hadc3);
-//	  if (HAL_ADC_PollForConversion(&hadc3, 100) == HAL_OK ){
-//		  par.adc.ch2.raw.val = (double) HAL_ADC_GetValue(&hadc3) ;
-//		  par.adc.ch2.volt.val = 3.3 * par.adc.ch2.raw.val / 0xffff;
-//	  }
-//
-//	  send_test();
-//	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
-
 	  send_adc_cnvs(2);
 	  lem_A = get_lem_A();
 	  in_set_v = get_set_V();
@@ -770,6 +761,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //	  acc_err = acc_err + err;
 //	  pid_out = acc_err*(-0.03);
 //	  set_dac_mos(pid_out);
+	  set_dac_mos(par.dac.ch1.volt.val);
 
 	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     }
