@@ -397,7 +397,7 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 24000;
+  htim7.Init.Prescaler = 80;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 1000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -566,13 +566,11 @@ static void MX_GPIO_Init(void)
 
 void send_single_adc_cnv(){
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
-	for (int i = 0; i < 100; i++) {
-		__NOP();
-	}
+	__NOP();
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
-	for (int i = 0; i < 10; i++) {
-		__NOP();
-	}
+//	for (int i = 0; i < 6; i++) {
+//		__NOP();
+//	}
 }
 
 void send_adc_cnvs(int n){
@@ -753,7 +751,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
 
-	  send_adc_cnvs(100);
+	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+	  send_adc_cnvs(200);
 	  lem_A = get_lem_A();
 	  in_set_v = get_set_V();
 	  par.adc.ch1.volt.val = in_set_v;
@@ -764,7 +763,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  set_dac_mos(pid_out);
 //	  set_dac_mos(par.dac.ch1.volt.val);
 
-	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
     }
   /* USER CODE END Callback 1 */
 }

@@ -11,3 +11,15 @@ V_set |     V_gate  |   I_power_sup |   I_lem_mA
 3.8         3.77        0.912           880
 3.9                     1.88            1820
 4.0                     3.96            3376
+
+27-09-2024
+
+controller cycle = 2 ms
+meas and sets = 1.17 ms  (TIM7: prescaler=80, period=2000)
+for prescaler 80 -> period is measured in us.
+
+single cnv measurement = 1us
+
+changed cycle to 1ms
+adc average 200
+meas and sets time = 220us

@@ -2,7 +2,7 @@
  * interface.c
  *
  *  Created on: Apr 10, 2022
- *      Author: UMK
+ *      Author: UMK, Piotr Morzynski
  */
 
 #include "interface.h"
@@ -16,8 +16,6 @@ int cmd_string_interpret(char *sin, char *sout);
 int cmd_interpret(char *sin, char *ssend);
 
 int ftostr(char *str, double val);
-
-
 
 parameters par;
 
@@ -61,8 +59,6 @@ pointer getPointer(pointer p, char *s)
       sdac *ptmp = (sdac *)p.p;
       if (strcmp(s, "CH1") == 0)
         pout = (pointer){.p = (void *)&(ptmp->ch1), .type = "dacchannel"};
-      if (strcmp(s, "CH2") == 0)
-        pout = (pointer){.p = (void *)&(ptmp->ch2), .type = "dacchannel"};
     }
 
   if (strcmp(p.type, "dacchannel") == 0)
@@ -130,15 +126,11 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-
   par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
   par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
   par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
   par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
-  par.dac.ch2.volt = (value){.val = 0, .min = 0, .max = 5};
-
-
 }
 
 /*------------------------*/
@@ -353,7 +345,6 @@ int rmwhite(char *str)
     }
   }
   str[isout] = 0;
-
   return 0;
 }
 
@@ -382,7 +373,6 @@ double atofmy(char *str)
   out = (double)inttemp;
   if (isdot)
     out = out * pow(10, -1 * (len - dotpos - 1));
-
   return out;
 }
 

@@ -55,7 +55,6 @@ typedef struct {
 
 typedef struct{
 	sdacchannel ch1;
-	sdacchannel ch2;
 } sdac;
 
 
