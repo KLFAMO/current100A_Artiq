@@ -399,7 +399,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 80;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 1000;
+  htim7.Init.Period = 500;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -757,9 +757,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  in_set_v = get_set_V();
 	  par.adc.ch1.volt.val = in_set_v;
 	  par.adc.ch2.volt.val = lem_A;
-	  err = lem_A - in_set_v*10;
+	  err = lem_A - in_set_v*10; // 1A_lem = 0.1V_set
 	  acc_err = acc_err + err;
-	  pid_out = acc_err*(-0.03);
+	  pid_out = acc_err*(par.I.val);
 	  set_dac_mos(pid_out);
 //	  set_dac_mos(par.dac.ch1.volt.val);
 

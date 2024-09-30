@@ -62,6 +62,7 @@ typedef struct{
 typedef struct {
     sadc adc;
     sdac dac;
+    value I;
 } parameters;
 
 pointer getPointer(pointer,char * );
