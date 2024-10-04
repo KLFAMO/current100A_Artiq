@@ -65,6 +65,8 @@ void Error_Handler(void);
 #define MOS_CLK_GPIO_Port GPIOF
 #define MOS_DATA_Pin GPIO_PIN_9
 #define MOS_DATA_GPIO_Port GPIOF
+#define L2_RIGHT_Pin GPIO_PIN_0
+#define L2_RIGHT_GPIO_Port GPIOC
 #define SET_ADC_Pin GPIO_PIN_2
 #define SET_ADC_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
@@ -91,6 +93,8 @@ void Error_Handler(void);
 #define SET_SCK_GPIO_Port GPIOD
 #define ADC_CNV_Pin GPIO_PIN_4
 #define ADC_CNV_GPIO_Port GPIOD
+#define L2_LEFT_Pin GPIO_PIN_6
+#define L2_LEFT_GPIO_Port GPIOD
 #define LEM_BUSY_Pin GPIO_PIN_7
 #define LEM_BUSY_GPIO_Port GPIOD
 #define LD2_Pin GPIO_PIN_1

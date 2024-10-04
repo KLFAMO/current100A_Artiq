@@ -28,9 +28,13 @@ pointer getPointer(pointer p, char *s)
     if (strcmp(s, "ADC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
     if (strcmp(s, "DAC") == 0)
-          pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
+      pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
     if (strcmp(s, "I") == 0)
-              pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
+	  pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
+    if (strcmp(s, "DIR") == 0)
+	  pout = (pointer){.p = (void *)&(ptmp->dir), .type = "value"};
+    if (strcmp(s, "MODE") == 0)
+	  pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -129,6 +133,8 @@ void setParam(value *p, double val)
 void initInterface(void)
 {
   par.I = (value){.val = -0.04, .min = -0.5, .max = 0};
+  par.dir = (value){.val = 0, .min = -1, .max = 1};
+  par.mode = (value){.val = 0, .min = 0, .max = 2};
   par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
   par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
   par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
