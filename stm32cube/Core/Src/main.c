@@ -70,10 +70,12 @@ double lem_v = 0;
 double lem_A = 0;
 double set_v = 0;
 double in_set_v = 0;
+double last_in_set_v = 0;
 double mos_v = 0;
 double err = 0;
 double acc_err = 0;
 double pid_out = 0;
+double I = 0;
 
 double get_adc_lem();
 double get_adc_set();
@@ -399,7 +401,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 80;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 500;
+  htim7.Init.Period = 300;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -762,7 +764,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM7) {
 	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
 
-	  if (par.mode.val == 0) {
+	  if (par.mode.val == 0) { // switch off current and reset pi values
 		  set_dac_mos(0);
 		  err = 0;
 		  acc_err = 0;
@@ -770,14 +772,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
 	  }
 	  else if (par.mode.val == 1) {
-		  send_adc_cnvs(200);
+		  send_adc_cnvs(100);
 		  lem_A = get_lem_A();
+		  last_in_set_v = in_set_v;
 		  in_set_v = get_set_V();
 		  par.adc.ch1.volt.val = in_set_v;
 		  par.adc.ch2.volt.val = lem_A;
 		  err = lem_A - in_set_v*10; // 1A_lem = 0.1V_set
+
+		  // error limit for smooth current changes
+		  if (err > par.ermax.val){err = par.ermax.val;}
+		  if (err < -par.ermax.val){err = -par.ermax.val;}
+
+		  //increase gain I if lower current (because of gate characteristics of transistor)
+		  if (lem_A < 1 && lem_A > -1){
+			  I = par.I.val *1.6;
+		  } else if (lem_A < 3 && lem_A > -3){
+			  I = par.I.val *1.3;
+		  } else {
+			  I = par.I.val;
+		  }
+
 		  acc_err = acc_err + err;
-		  pid_out = acc_err*(par.I.val);
+
+		  // error limit for smooth current changes
+		  if (acc_err > par.aermax.val){acc_err = par.aermax.val;}
+		  if (acc_err < -par.aermax.val){acc_err = -par.aermax.val;}
+
+		  pid_out = par.goff.val + acc_err*(I);
 		  set_dac_mos(pid_out);
 	//	  set_dac_mos(par.dac.ch1.volt.val);
 
