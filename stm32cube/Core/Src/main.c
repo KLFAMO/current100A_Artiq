@@ -71,6 +71,8 @@ double lem_A = 0;
 double set_v = 0;
 double in_set_v = 0;
 double last_in_set_v = 0;
+double set_A = 0;
+double last_set_A = 0;
 double mos_v = 0;
 double err = 0;
 double acc_err = 0;
@@ -81,6 +83,7 @@ double get_adc_lem();
 double get_adc_set();
 double get_set_V();
 double get_lem_A();
+int need_change_sign = 0;
 void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
@@ -771,50 +774,86 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
 		  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
 	  }
-	  else if (par.mode.val == 1) {
+	  else if (par.mode.val == 1 || par.mode.val == 2) {
 		  send_adc_cnvs(100);
 		  lem_A = get_lem_A();
-		  last_in_set_v = in_set_v;
-		  in_set_v = get_set_V();
+		  last_set_A = set_A;
+		  if (par.mode.val == 1){
+			  in_set_v = get_set_V()*10;
+			  set_A = in_set_v; // 1A_lem = 0.1V_set
+		  }
+		  if (par.mode.val == 2){
+			  set_A = par.cur.val;
+		  }
 		  par.adc.ch1.volt.val = in_set_v;
 		  par.adc.ch2.volt.val = lem_A;
-		  err = lem_A - in_set_v*10; // 1A_lem = 0.1V_set
-
-		  // error limit for smooth current changes
-		  if (err > par.ermax.val){err = par.ermax.val;}
-		  if (err < -par.ermax.val){err = -par.ermax.val;}
 
 		  //increase gain I if lower current (because of gate characteristics of transistor)
-		  if (lem_A < 1 && lem_A > -1){
-			  I = par.I.val *1.6;
-		  } else if (lem_A < 3 && lem_A > -3){
-			  I = par.I.val *1.3;
-		  } else {
+//		  if (lem_A < 1 && lem_A > -1){
+//			  I = par.I.val *1.6;
+//		  } else if (lem_A < 3 && lem_A > -3){
+//			  I = par.I.val *1.3;
+//		  } else {
 			  I = par.I.val;
-		  }
+//		  }
+
+//		  if ( signbit(set_A) != signbit(lem_A) ){
+//			  if (fabs(lem_A) > 0.01){
+//				  set_A = 0;
+//				  need_change_sign = 1;
+//			  }else{
+//				  if (need_change_sign){
+//					  if (set_A <0){
+//						  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
+//						  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
+//					  }else{
+//						  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
+//						  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+//					  }
+//					  need_change_sign = 0;
+//				  }
+//			  }
+//		  }
+
+		  err = lem_A - set_A;
+
+		  // error limit for smooth current changes
+//		  if (err > par.ermax.val){
+//			  err = par.ermax.val;
+//		  }
+//		  if (err < -par.ermax.val){
+//			  err = -par.ermax.val;
+//		  }
 
 		  acc_err = acc_err + err;
 
 		  // error limit for smooth current changes
-		  if (acc_err > par.aermax.val){acc_err = par.aermax.val;}
-		  if (acc_err < -par.aermax.val){acc_err = -par.aermax.val;}
+//		  if (acc_err > par.aermax.val){acc_err = par.aermax.val;}
+//		  if (acc_err < -par.aermax.val){acc_err = -par.aermax.val;}
 
-		  pid_out = par.goff.val + acc_err*(I);
+		  pid_out = par.goff.val + acc_err*I;
+		  if (pid_out > 9 ){
+			  pid_out = 9;
+		  }
+		  if (pid_out < 0 ){
+			  pid_out = 0;
+		  }
+
 		  set_dac_mos(pid_out);
 	//	  set_dac_mos(par.dac.ch1.volt.val);
 
 	//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 
-		  if (par.dir.val>0.5){
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
-		  } else if (par.dir.val<-0.5){
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-		  } else{
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-		  }
+//		  if (par.dir.val>0.5){
+//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
+//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
+//		  } else if (par.dir.val<-0.5){
+//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
+//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+//		  } else{
+//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
+//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+//		  }
 	  }
 
 	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);

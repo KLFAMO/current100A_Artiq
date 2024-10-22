@@ -64,6 +64,8 @@ typedef struct {
     sdac dac;
     value I;
     value D;
+    value cur;
+    value dcur;
     value dir;
     value mode;
     value ermax;

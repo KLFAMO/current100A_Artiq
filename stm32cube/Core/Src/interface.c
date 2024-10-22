@@ -43,6 +43,10 @@ pointer getPointer(pointer p, char *s)
       pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
     if (strcmp(s, "GOFF") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->goff), .type = "value"};
+    if (strcmp(s, "CUR") == 0)
+	  pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
+    if (strcmp(s, "DCUR") == 0)
+	  pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -142,10 +146,12 @@ void initInterface(void)
 {
   par.I = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 0, .min = -1, .max = 1};
+  par.cur = (value){.val = 0, .min = 0, .max = 100};
+  par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 2};
   par.ermax = (value){.val = 0.1, .min = 0, .max = 1};
-  par.ermax = (value){.val = 10, .min = 0, .max = 10};
-  par.goff = (value){.val = 2, .min = 0, .max = 4};
+  par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
+  par.goff = (value){.val = 0, .min = 0, .max = 4};
   par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
   par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
   par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
@@ -257,7 +263,7 @@ int cmd_interpret(char *sin, char *ssend)
 
   if (sarg[0] == '?')
   {
-	  strcat(ssend, "*?*\n");
+//	  strcat(ssend, "*?*\n");
     if (strcmp(parg.type, "double") == 0){
     	//strcat(ssend, "*double*\n");
     	ftostr(stmp, *((double *)(parg.p)));
