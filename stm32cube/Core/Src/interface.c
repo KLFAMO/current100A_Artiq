@@ -31,6 +31,8 @@ pointer getPointer(pointer p, char *s)
       pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
     if (strcmp(s, "I") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
+    if (strcmp(s, "RI") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->rI), .type = "value"};
     if (strcmp(s, "D") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->D), .type = "value"};
     if (strcmp(s, "DIR") == 0)
@@ -47,6 +49,10 @@ pointer getPointer(pointer p, char *s)
 	  pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
     if (strcmp(s, "DCUR") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
+    if (strcmp(s, "SETA") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
+    if (strcmp(s, "LEMA") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -144,7 +150,8 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.I = (value){.val = -0.04, .min = -0.5, .max = 0};
+  par.I = (value){.val = -0.01, .min = -0.5, .max = 0};
+  par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 0, .min = -1, .max = 1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
@@ -157,6 +164,8 @@ void initInterface(void)
   par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
   par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
+  par.setA = (value){.val = 0, .min = -100, .max = 100};
+  par.lemA = (value){.val = 0, .min = -100, .max = 100};
 }
 
 /*------------------------*/

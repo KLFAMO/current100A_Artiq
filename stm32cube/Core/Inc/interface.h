@@ -63,6 +63,7 @@ typedef struct {
     sadc adc;
     sdac dac;
     value I;
+    value rI;
     value D;
     value cur;
     value dcur;
@@ -71,6 +72,8 @@ typedef struct {
     value ermax;
     value aermax;
     value goff;
+    value lemA;
+    value setA;
 } parameters;
 
 pointer getPointer(pointer,char * );

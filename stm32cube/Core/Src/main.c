@@ -777,7 +777,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 		  send_adc_cnvs(100);
 		  lem_A = get_lem_A();
-		  last_set_A = set_A;
+		  last_set_A = set_A; // torm
 		  if (par.mode.val == 1){
 			  in_set_v = get_set_V()*10;
 			  set_A = in_set_v; // 1A_lem = 0.1V_set
@@ -785,17 +785,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  if (par.mode.val == 2){
 			  set_A = par.cur.val;
 		  }
-		  par.adc.ch1.volt.val = in_set_v;
-		  par.adc.ch2.volt.val = lem_A;
+		  par.setA.val = in_set_v;
+		  par.lemA.val = lem_A;
 
 		  //increase gain I if lower current (because of gate characteristics of transistor)
-//		  if (lem_A < 1 && lem_A > -1){
-//			  I = par.I.val *1;
-//		  } else if (lem_A < 3 && lem_A > -3){
-//			  I = par.I.val *1;
-//		  } else {
-			  I = par.I.val;
+		  I = par.I.val;
+//		  if (fabs(lem_A) < 2){
+//			  I = I*5;
 //		  }
+//		  else if (fabs(lem_A) < 5){
+//			  I = I*2;
+//		  }
+
+		  par.rI.val = I;
 
 //		  if ( signbit(set_A) != signbit(lem_A) ){
 //			  if (fabs(lem_A) > 0.01){
