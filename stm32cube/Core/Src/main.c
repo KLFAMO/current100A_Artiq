@@ -790,9 +790,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		  //increase gain I if lower current (because of gate characteristics of transistor)
 //		  if (lem_A < 1 && lem_A > -1){
-//			  I = par.I.val *1.6;
+//			  I = par.I.val *1;
 //		  } else if (lem_A < 3 && lem_A > -3){
-//			  I = par.I.val *1.3;
+//			  I = par.I.val *1;
 //		  } else {
 			  I = par.I.val;
 //		  }

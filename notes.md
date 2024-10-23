@@ -23,3 +23,13 @@ single cnv measurement = 1us
 changed cycle to 1ms
 adc average 200
 meas and sets time = 220us
+
+23.10.2024
+40A  -  I=-0.015 (ringing)
+30A  -  I=-0.019 (ringing)
+20A  -  I=-0.025 (ringing)
+10A  -  I=-0.042 (ringing)
+5A   -  I=-0.077 (ringing)
+2A   -  I=-0.18  (ringing)
+
+we set I = -0.01 for 40 A
