@@ -46,4 +46,4 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 # Issues
 
-Please add your comments in `Issues` Github section.
+Please add your comments in `Issues` Github section (in top of this website).
