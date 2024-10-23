@@ -1,20 +1,30 @@
 # current100A_Artiq
 100A current driver compatible with Artiq. At the moment, device is compatible with Sinara package size and includes all Sinara connectors. There is no software compatibility yet.
 
-# Connection
+<img src="./images/current100A_general.png"  width="200" />
+
 
 ## High power circuit
+
+<img src="./images/current100A_scheme.png"  width="200" />
+<img src="./images/current100A_high_power_circuit.png"  width="230" />
+<img src="./images/current100A_lem.png"  width="190" />
 
 Power supply - two wires (+ and -) from Delta Power Supply. (will be WAGO connector asap).
 Warning: 
 
-Coil 1 - two wires from one coil (will be WAGO connector asap)
+Coil 1 (L1) - two wires from one coil (will be WAGO connector asap)
 
-Coil 2 - two wires from second coil (this coil is direction switchable) (will be WAGO connector asap)
+Coil 2 (L2) - two wires from second coil (this coil is direction switchable) (will be WAGO connector asap)
+
+LEM IN 100-S is used for current measurement.
 
 ## Control board
 
-Power supply MSTBA (0 and +12V) for control board.
+<img src="./images/current100A_control_board.png" width="260" />
+<img src="./images/current100A_control_board_nucleo.png" width="245" />
+
+Power supply MSTBA green connector (0 and +12V) for control board.
 
 Ethernet - User Interface communication.
 
@@ -24,6 +34,7 @@ SMA input - (-10V to +10V) current control by voltage (from external control pro
 
 USB micro - not used yet
 
+<img src="./images/current100A_font_panel.png"  width="150" />
 
 # User Interface
 
