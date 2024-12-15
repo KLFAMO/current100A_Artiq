@@ -25,98 +25,98 @@ pointer getPointer(pointer p, char *s)
   if (strcmp(p.type, "parameters") == 0)
   {
     parameters *ptmp = (parameters *)p.p;
-    if (strcmp(s, "ADC") == 0)
+    if (strcasecmp(s, "ADC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
-    if (strcmp(s, "DAC") == 0)
+    if (strcasecmp(s, "DAC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
-    if (strcmp(s, "I") == 0)
+    if (strcasecmp(s, "I") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
-    if (strcmp(s, "RI") == 0)
+    if (strcasecmp(s, "RI") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->rI), .type = "value"};
-    if (strcmp(s, "D") == 0)
+    if (strcasecmp(s, "D") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->D), .type = "value"};
-    if (strcmp(s, "DIR") == 0)
+    if (strcasecmp(s, "DIR") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->dir), .type = "value"};
-    if (strcmp(s, "MODE") == 0)
+    if (strcasecmp(s, "MODE") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
-    if (strcmp(s, "ERMAX") == 0)
+    if (strcasecmp(s, "ERMAX") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->ermax), .type = "value"};
-    if (strcmp(s, "AERMAX") == 0)
+    if (strcasecmp(s, "AERMAX") == 0)
       pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
-    if (strcmp(s, "GOFF") == 0)
+    if (strcasecmp(s, "GOFF") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->goff), .type = "value"};
-    if (strcmp(s, "CUR") == 0)
+    if (strcasecmp(s, "CUR") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
-    if (strcmp(s, "DCUR") == 0)
+    if (strcasecmp(s, "DCUR") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
-    if (strcmp(s, "SETA") == 0)
+    if (strcasecmp(s, "SETA") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
-    if (strcmp(s, "LEMA") == 0)
+    if (strcasecmp(s, "LEMA") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
   {
     sadc *ptmp = (sadc *)p.p;
-    if (strcmp(s, "CH1") == 0)
+    if (strcasecmp(s, "CH1") == 0)
       pout = (pointer){.p = (void *)&(ptmp->ch1), .type = "adcchannel"};
-    if (strcmp(s, "CH2") == 0)
+    if (strcasecmp(s, "CH2") == 0)
       pout = (pointer){.p = (void *)&(ptmp->ch2), .type = "adcchannel"};
   }
   if (strcmp(p.type, "adcchannel") == 0)
   {
     sadcchannel *ptmp = (sadcchannel *)p.p;
-    if (strcmp(s, "RAW") == 0)
+    if (strcasecmp(s, "RAW") == 0)
           pout = (pointer){.p = (void *)&(ptmp->raw), .type = "value"};
-    if (strcmp(s, "VOLT") == 0)
+    if (strcasecmp(s, "VOLT") == 0)
       pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
-    if (strcmp(s, "AVR") == 0)
+    if (strcasecmp(s, "AVR") == 0)
       pout = (pointer){.p = (void *)&(ptmp->avr), .type = "value"};
-    if (strcmp(s, "CORON") == 0)
+    if (strcasecmp(s, "CORON") == 0)
       pout = (pointer){.p = (void *)&(ptmp->coron), .type = "value"};
-    if (strcmp(s, "CORFACTOR") == 0)
+    if (strcasecmp(s, "CORFACTOR") == 0)
       pout = (pointer){.p = (void *)&(ptmp->corfactor), .type = "value"};
   }
 
   if (strcmp(p.type, "dac") == 0)
     {
       sdac *ptmp = (sdac *)p.p;
-      if (strcmp(s, "CH1") == 0)
+      if (strcasecmp(s, "CH1") == 0)
         pout = (pointer){.p = (void *)&(ptmp->ch1), .type = "dacchannel"};
     }
 
   if (strcmp(p.type, "dacchannel") == 0)
     {
       sdacchannel *ptmp = (sdacchannel *)p.p;
-      if (strcmp(s, "RAW") == 0)
+      if (strcasecmp(s, "RAW") == 0)
             pout = (pointer){.p = (void *)&(ptmp->raw), .type = "value"};
-      if (strcmp(s, "VOLT") == 0)
+      if (strcasecmp(s, "VOLT") == 0)
         pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
     }
 
   if (strcmp(p.type, "value") == 0)
   {
     value *ptmp = (value *)p.p;
-    if (strcmp(s, "VAL") == 0)
+    if (strcasecmp(s, "VAL") == 0)
       pout = (pointer){.p = (void *)&(ptmp->val), .type = "double"};
-    if (strcmp(s, "MIN") == 0)
+    if (strcasecmp(s, "MIN") == 0)
       pout = (pointer){.p = (void *)&(ptmp->min), .type = "double"};
-    if (strcmp(s, "MAX") == 0)
+    if (strcasecmp(s, "MAX") == 0)
       pout = (pointer){.p = (void *)&(ptmp->max), .type = "double"};
-    if (strcmp(s, "TABON") == 0)
+    if (strcasecmp(s, "TABON") == 0)
       pout = (pointer){.p = (void *)&(ptmp->tabon), .type = "ison"};
-    if (strcmp(s, "MES") == 0)
+    if (strcasecmp(s, "MES") == 0)
       pout = (pointer){.p = (void *)&(ptmp->mes), .type = "mestab"};
   }
 
   if (strcmp(p.type, "mestab") == 0)
   {
     mestab *ptmp = (mestab *)p.p;
-    if (strcmp(s, "SIZE") == 0)
+    if (strcasecmp(s, "SIZE") == 0)
       pout = (pointer){.p = (void *)&(ptmp->tabsize), .type = "int"};
-    if (strcmp(s, "COUNT") == 0)
+    if (strcasecmp(s, "COUNT") == 0)
       pout = (pointer){.p = (void *)&(ptmp->tabcount), .type = "int"};
-    if (strcmp(s, "POS") == 0)
+    if (strcasecmp(s, "POS") == 0)
       pout = (pointer){.p = (void *)&(ptmp->tabpos), .type = "int"};
   }
   if (strcmp(p.type, "ison") == 0)
