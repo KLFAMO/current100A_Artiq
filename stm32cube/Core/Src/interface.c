@@ -53,6 +53,8 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
     if (strcasecmp(s, "LEMA") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
+    if (strcasecmp(s, "VG") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->vg), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)

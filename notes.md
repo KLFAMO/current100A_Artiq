@@ -33,3 +33,20 @@ meas and sets time = 220us
 2A   -  I=-0.18  (ringing)
 
 we set I = -0.01 for 40 A
+
+15-12-2024
+new high power circuit with diodes for tock
+
+Vg - I characteristics
+cur     vg
+0       3.3997
+0.5     4.063
+1       4.168
+1.5     4.234
+2       4.283
+2.5     4.323
+3       4.358
+3.5     4.390
+4       4.4169
+4.5     4.44
+5       4.46

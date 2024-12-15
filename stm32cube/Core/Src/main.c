@@ -88,6 +88,8 @@ void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
+double g_tab[7] = {3.37, 4.168, 4.283, 4.358, 4.417, 4.46, 4.5};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -791,7 +793,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		  send_adc_cnvs(100);
 		  lem_A = get_lem_A();
-		  last_set_A = set_A; // torm
+      
 		  if (par.mode.val == 1){
 			  in_set_v = get_set_V()*10;
 			  set_A = in_set_v; // 1A_lem = 0.1V_set
@@ -801,6 +803,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  }
 		  par.setA.val = in_set_v;
 		  par.lemA.val = lem_A;
+
+      if (fabs(last_set_A - set_A) > 0.1){
+        acc_err = 0;
+      }
+		  last_set_A = set_A; // torm
 
 		  //increase gain I if lower current (because of gate characteristics of transistor)
 		  I = par.I.val;
@@ -841,13 +848,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //			  err = -par.ermax.val;
 //		  }
 
-		  acc_err = acc_err + err;
 
 		  // error limit for smooth current changes
 //		  if (acc_err > par.aermax.val){acc_err = par.aermax.val;}
 //		  if (acc_err < -par.aermax.val){acc_err = -par.aermax.val;}
 
-		  pid_out = par.goff.val + acc_err*I;
+      int int_set_A;
+      double frac_set_A;
+      double vgs;
+      int_set_A = (int)set_A;
+      frac_set_A = set_A - int_set_A;
+      vgs = g_tab[int_set_A] + frac_set_A*(g_tab[int_set_A+1]-g_tab[int_set_A]);
+      pid_out = vgs + acc_err*I;
 		  if (pid_out > 9 ){
 			  pid_out = 9;
 		  }
@@ -855,8 +867,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			  pid_out = 0;
 		  }
 
+      par.vg.val = pid_out;
+
 		  set_dac_mos(pid_out);
 	//	  set_dac_mos(par.dac.ch1.volt.val);
+
+      acc_err = acc_err + err;
 
 	//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 	  }
