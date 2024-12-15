@@ -672,13 +672,13 @@ double get_adc_set(){
 double get_set_V(){
 	set_v = get_adc_set();
 	// return (set_v - 0.007) * 3.316; 
-  return (set_v - 0.0085) * 3.316;
+  return (set_v - 0.0085) * 3.316; // tock driver
 }
 
 double get_lem_A(){
 	lem_v = get_adc_lem();
 //	return lem_v*30.77-0.15;
-	return (lem_v - 0.0093 )*41.363;
+	return (lem_v - 0.0093 )*41.363; // tock driver
 }
 
 void set_dac_mos(double dac){
