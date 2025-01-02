@@ -814,20 +814,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  acc_err = 0;
 		  // HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
 		  // HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-      L2_LEFT_GPIO_Port->BSRR = ((uint32_t)L2_LEFT_Pin << 16U) | ((uint32_t)L2_RIGHT_Pin << 16U);
+      L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+      L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
       // set coils direction
       if (par.dir.val>0.5){
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
+        // RESET L2_LEFT, SET L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
 		  } else if (par.dir.val<-0.5){
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+        // SET L2_LEFT, RESET L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 		  } else{
-			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+        // RESET both L2_LEFT and L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 		  }
 
 		  send_adc_cnvs(100);

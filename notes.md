@@ -79,6 +79,11 @@ working on shortening cycle time
 
 mode 1 - 140us
 mode 2 - 125us
-mode 0 - 12us
+mode 0 - 13us
 
 full cycle set to 200us (before 300us)
+
+switching directions coils using registers instead of hal
+mode 1 - 139us
+mode 2 - 124us
+mode 0 - 13us
