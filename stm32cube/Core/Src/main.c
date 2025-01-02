@@ -78,6 +78,8 @@ double err = 0;
 double acc_err = 0;
 double pid_out = 0;
 double I = 0;
+int calib_cycles_cnt = 0;
+int calib_i_cnt = 0;
 
 double get_adc_lem();
 double get_adc_set();
@@ -771,6 +773,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
 	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+
+    if (par.calib.val > 0.1){
+      if (par.calib.val < 1.5){
+        calib_cycles_cnt = 0;
+        calib_i_cnt = 0;
+        par.cur.val = 0;
+        par.mode.val = 2;
+        par.calib.val = 2;
+      }   
+      if (par.calib.val > 1.5 && par.calib.val < 2.5){
+        if (calib_cycles_cnt > 1000){
+          calib_cycles_cnt = 0;
+          par.cur.val = (double)calib_i_cnt;
+          calib_i_cnt++;
+          if (par.cur.val > par.imax.val){
+            par.calib.val = 3;
+          }
+        }
+      }
+      if (par.calib.val > 2.5 && par.calib.val < 3.5){
+        if (calib_cycles_cnt > 1000){
+          calib_cycles_cnt = 0;
+          calib_i_cnt--;
+          par.cur.val = (double)calib_i_cnt;
+          if (par.cur.val <= 0){
+            par.cur.val = 0;
+            par.mode.val = 0;
+            par.calib.val = 0;
+          }
+        }
+      }
+      calib_cycles_cnt++;
+    }
 
 	  if (par.mode.val == 0) { // switch off current and reset pi values
 		  set_dac_mos(0);

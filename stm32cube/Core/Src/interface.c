@@ -55,6 +55,10 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
     if (strcasecmp(s, "VG") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->vg), .type = "value"};
+    if (strcasecmp(s, "CALIB") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->calib), .type = "value"};
+    if (strcasecmp(s, "IMAX") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->imax), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -168,6 +172,8 @@ void initInterface(void)
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
   par.setA = (value){.val = 0, .min = -100, .max = 100};
   par.lemA = (value){.val = 0, .min = -100, .max = 100};
+  par.imax = (value){.val = 0, .min = 0, .max = 5};
+  par.calib = (value){.val = 0, .min = 0, .max = 3};
 }
 
 /*------------------------*/

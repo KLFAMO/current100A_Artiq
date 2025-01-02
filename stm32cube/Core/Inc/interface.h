@@ -75,6 +75,8 @@ typedef struct {
     value lemA;
     value setA;
     value vg; // gate voltage
+    value calib;
+    value imax;
 } parameters;
 
 pointer getPointer(pointer,char * );
