@@ -410,7 +410,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 79;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 200;
+  htim7.Init.Period = 110;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -602,27 +602,20 @@ void send_adc_cnvs(int n){
 
 
 double get_adc_lem(){
-
 	uint32_t code = 0x000000;
 	double adc_val;
-
-
-//	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
 
 	 for (int i = 0; i < 10; i++) {
 	        __NOP();
 	    }
 
 	 while (HAL_GPIO_ReadPin(LEM_BUSY_GPIO_Port, LEM_BUSY_Pin) == GPIO_PIN_SET) {
-	         // Czekaj na zakończenie konwersji
+	         // wait until conversion done
 	     }
-//	 HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
 	 HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
 
 	HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 200);
 	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
-
 
 	((uint8_t *)&code)[2] = (unsigned int)spi_buf_lem[0];
 	((uint8_t *)&code)[1] = (unsigned int)spi_buf_lem[1];
@@ -632,29 +625,16 @@ double get_adc_lem(){
 	if(code >= HALF_CODE){
 		adc_val -= 2*v_ref;
 	}
-//	adc_val = adc_val/0.377 + 0.04;
-//	adc_val = (adc_val/0.377)*1000;
-
-//	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 	return adc_val;
-
 }
 
 double get_adc_set(){
 
 	char msg[100];
 	int adc_val_int=0;
-//	sprintf(msg, "get_adc_set start\r\n");
-//	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
 	uint32_t code = 0x000000;
 	double adc_val;
-
-//	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
-
-//	for (int i = 0; i < 2; i++) {
-//	        __NOP();
-//	    }
 
 	while (HAL_GPIO_ReadPin(SET_BUSY_GPIO_Port, SET_BUSY_Pin) == GPIO_PIN_SET) {
 	    }
@@ -772,7 +752,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
-	  // HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
     LD1_GPIO_Port->BSRR = LD1_Pin;
 
     if (par.calib.val > 0.1){
@@ -834,7 +813,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 		  }
 
-		  send_adc_cnvs(100);
+      // LD1_GPIO_Port->BSRR = LD1_Pin;
+		  send_adc_cnvs(25);
+      // LD1_GPIO_Port->BSRR = (uint32_t)LD1_Pin << 16U;
 		  lem_A = get_lem_A();
       
 		  if (par.mode.val == 1){
@@ -913,14 +894,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       par.vg.val = pid_out;
 
 		  set_dac_mos(pid_out);
-	//	  set_dac_mos(par.dac.ch1.volt.val);
 
       acc_err = acc_err + err;
-
-	//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 	  }
 
-	  // HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
     LD1_GPIO_Port->BSRR = (uint32_t)LD1_Pin << 16U;
     }
   /* USER CODE END Callback 1 */
