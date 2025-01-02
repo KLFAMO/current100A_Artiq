@@ -408,9 +408,9 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 80;
+  htim7.Init.Prescaler = 79;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 300;
+  htim7.Init.Period = 200;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -772,7 +772,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+	  // HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+    LD1_GPIO_Port->BSRR = LD1_Pin;
 
     if (par.calib.val > 0.1){
       if (par.calib.val < 1.5){
@@ -811,8 +812,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  set_dac_mos(0);
 		  err = 0;
 		  acc_err = 0;
-		  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-		  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+		  // HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
+		  // HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+      L2_LEFT_GPIO_Port->BSRR = ((uint32_t)L2_LEFT_Pin << 16U) | ((uint32_t)L2_RIGHT_Pin << 16U);
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
@@ -914,7 +916,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 	  }
 
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
+	  // HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
+    LD1_GPIO_Port->BSRR = (uint32_t)LD1_Pin << 16U;
     }
   /* USER CODE END Callback 1 */
 }

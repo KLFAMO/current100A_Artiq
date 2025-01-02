@@ -72,3 +72,13 @@ cur     vg
 23      4.895
 24      4.91
 25      4.924
+
+
+02-01-2025
+working on shortening cycle time
+
+mode 1 - 140us
+mode 2 - 125us
+mode 0 - 12us
+
+full cycle set to 200us (before 300us)
