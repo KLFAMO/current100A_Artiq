@@ -110,3 +110,16 @@ mode 1 - 73us
 mode 2 - 58us
 mode 0 - 13us
 changing cycle to 110us
+
+----
+reading SPI data from ADC
+17us
+
+optymalizacja funkcji czytającej (spi still in hal)  ->  15.2us
+spi is more complicated to do without hal (I will try to change it later)
+the same for adc_set
+
+changed cycle to 100 us
+mode 1 - 69.5us
+mode 2 - 56us
+mode 0 - 13us

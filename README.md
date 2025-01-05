@@ -51,6 +51,8 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 `CUR 10.2` - set current 10.2 A (only in mode 2)
 
+`IMAX 25` - set max possible current value to 25A
+
 ### Advanced settings
 
 `I -0.04` - set gain -0.04 (this is bese gain for 50A - it is rescaled by uC for lower current due to udjust transistor characteristics)

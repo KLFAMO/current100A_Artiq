@@ -57,8 +57,18 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->vg), .type = "value"};
     if (strcasecmp(s, "CALIB") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->calib), .type = "value"};
+    if (strcasecmp(s, "LEMSH") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->lemsh), .type = "value"};
     if (strcasecmp(s, "IMAX") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->imax), .type = "value"};
+    if (strcasecmp(s, "GT0") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->gt0), .type = "value"};
+    if (strcasecmp(s, "GT1") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->gt1), .type = "value"};
+    if (strcasecmp(s, "GT5") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->gt5), .type = "value"};
+    if (strcasecmp(s, "GT10") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->gt10), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -158,7 +168,7 @@ void initInterface(void)
 {
   par.I = (value){.val = -0.003, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
-  par.dir = (value){.val = 0, .min = -1, .max = 1};
+  par.dir = (value){.val = 1, .min = -1, .max = 1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 2};
@@ -172,8 +182,13 @@ void initInterface(void)
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
   par.setA = (value){.val = 0, .min = -100, .max = 100};
   par.lemA = (value){.val = 0, .min = -100, .max = 100};
-  par.imax = (value){.val = 0, .min = 0, .max = 5};
-  par.calib = (value){.val = 0, .min = 0, .max = 3};
+  par.imax = (value){.val = 5, .min = 0, .max = 26};
+  par.calib = (value){.val = 0, .min = 0, .max = 4};
+  par.lemsh = (value){.val = 0, .min = -1, .max = 1};
+  par.gt0 = (value){.val = 0, .min = 0, .max = 10};
+  par.gt1 = (value){.val = 0, .min = 0, .max = 10};
+  par.gt5 = (value){.val = 0, .min = 0, .max = 10};
+  par.gt10 = (value){.val = 0, .min = 0, .max = 10};
 }
 
 /*------------------------*/
