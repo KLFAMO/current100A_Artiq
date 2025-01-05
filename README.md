@@ -53,6 +53,8 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 `IMAX 25` - set max possible current value to 25A
 
+`ERMAX 1` - max 1A change in each cycle (0.1ms)
+
 ### Advanced settings
 
 `I -0.04` - set gain -0.04 (this is bese gain for 50A - it is rescaled by uC for lower current due to udjust transistor characteristics)
