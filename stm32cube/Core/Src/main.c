@@ -73,6 +73,7 @@ double in_set_v = 0;
 double last_in_set_v = 0;
 double set_A = 0;
 double last_set_A = 0;
+double tmp_set_A = 0;
 double mos_v = 0;
 double err = 0;
 double acc_err = 0;
@@ -849,7 +850,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  par.setA.val = in_set_v;
 		  par.lemA.val = lem_A;
 
-      if (fabs(last_set_A - set_A) > 0.1){
+      if (fabs(last_set_A - set_A) > 0.05){
         acc_err = 0;
       }
 		  last_set_A = set_A; // torm
@@ -883,15 +884,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //			  }
 //		  }
 
-		  err = lem_A - set_A;
+		  // err = lem_A - set_A;
 
-		  // error limit for smooth current changes
-//		  if (err > par.ermax.val){
-//			  err = par.ermax.val;
-//		  }
-//		  if (err < -par.ermax.val){
-//			  err = -par.ermax.val;
-//		  }
+		  // current change limit for smooth current changes
+		  if ( tmp_set_A > (set_A + par.ermax.val) ){
+			  tmp_set_A = tmp_set_A - par.ermax.val;
+        acc_err = 0;
+		  }
+		  else if ( tmp_set_A < (set_A - par.ermax.val) ){
+			  tmp_set_A = tmp_set_A + par.ermax.val;
+        acc_err = 0;
+		  }
+      else{
+        tmp_set_A = set_A;
+      }
+
+      err = lem_A - tmp_set_A;
 
 
 		  // error limit for smooth current changes
@@ -901,8 +909,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       int int_set_A;
       double frac_set_A;
       double vgs;
-      int_set_A = (int)set_A;
-      frac_set_A = set_A - int_set_A;
+      int_set_A = (int)tmp_set_A;
+      frac_set_A = tmp_set_A - int_set_A;
       vgs = g_tab[int_set_A] + frac_set_A*(g_tab[int_set_A+1]-g_tab[int_set_A]);
       pid_out = vgs + acc_err*I;
 		  if (pid_out > par.imax.val ){

@@ -172,7 +172,7 @@ void initInterface(void)
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 2};
-  par.ermax = (value){.val = 0.1, .min = 0, .max = 1};
+  par.ermax = (value){.val = 2, .min = 0, .max = 5};
   par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
   par.goff = (value){.val = 0, .min = 0, .max = 4};
   par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
