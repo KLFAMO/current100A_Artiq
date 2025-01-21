@@ -182,7 +182,7 @@ void initInterface(void)
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
   par.setA = (value){.val = 0, .min = -100, .max = 100};
   par.lemA = (value){.val = 0, .min = -100, .max = 100};
-  par.imax = (value){.val = 5, .min = 0, .max = 26};
+  par.imax = (value){.val = 20, .min = 0, .max = 26};
   par.calib = (value){.val = 0, .min = 0, .max = 4};
   par.lemsh = (value){.val = 0, .min = -1, .max = 1};
   par.gt0 = (value){.val = 0, .min = 0, .max = 10};
