@@ -166,7 +166,7 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.I = (value){.val = -0.003, .min = -0.5, .max = 0};
+  par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};

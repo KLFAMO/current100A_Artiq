@@ -84,7 +84,7 @@ double vgs = 1;
 int is_last_gtab_zero = 0;
 int is_new_set_A = 0;
 int calib_cycles_cnt = 0;
-int calib_i_cnt = 0;
+double calib_i_cnt = 0;
 
 double get_adc_lem();
 double get_adc_set();
@@ -95,7 +95,7 @@ void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
-double g_tab[30];
+double g_tab[300];
 
 /* USER CODE END PV */
 
@@ -171,10 +171,10 @@ int main(void)
   tcp_server_init();
   initInterface();
   par.gt0.val = g_tab[0];
-  par.gt1.val = g_tab[1];
-  par.gt5.val = g_tab[5];
-  par.gt10.val = g_tab[10];
-  par.calib.val = 4;
+  par.gt1.val = g_tab[10];
+  par.gt5.val = g_tab[50];
+  par.gt10.val = g_tab[100];
+  par.calib.val = 4; // lem_A calibration
 
   HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
@@ -766,28 +766,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
           //save results to g_tab
-          g_tab[calib_i_cnt] = par.vg.val;
+          g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
           //set next value
-          calib_i_cnt++;
+          calib_i_cnt += 0.1;
           if (par.cur.val > par.imax.val){
             par.calib.val = 3;
           }
-          par.cur.val = (double)calib_i_cnt;
+          par.cur.val = calib_i_cnt;
         }
       }
       if (par.calib.val > 2.5 && par.calib.val < 3.5){
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
-          calib_i_cnt--;
-          par.cur.val = (double)calib_i_cnt;
+          calib_i_cnt -= 0.1;
+          par.cur.val = calib_i_cnt;
           if (par.cur.val <= 0){
             par.cur.val = 0;
             par.mode.val = 0;
             par.calib.val = 0;
             par.gt0.val = g_tab[0];
-            par.gt1.val = g_tab[1];
-            par.gt5.val = g_tab[5];
-            par.gt10.val = g_tab[10];
+            par.gt1.val = g_tab[10];
+            par.gt5.val = g_tab[50];
+            par.gt10.val = g_tab[100];
           }
         }
       }
@@ -862,7 +862,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  //increase gain I if lower current (because of gate characteristics of transistor)
 		  I = par.I.val;
 
-		  par.rI.val = I;
+		  
 
 		  // current change limit for smooth current changes
 		  if ( tmp_set_A > (set_A + par.ermax.val) ){
@@ -879,16 +879,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
       err = lem_A - tmp_set_A;
 
-      int int_set_A;
+      int int_set_Ax10;
       double frac_set_A;
-      int_set_A = (int)tmp_set_A;
-      frac_set_A = tmp_set_A - int_set_A;
-      if ( g_tab[int_set_A] >0 && g_tab[int_set_A+1] >0 ){
-        vgs = g_tab[int_set_A] + frac_set_A*(g_tab[int_set_A+1]-g_tab[int_set_A]);
+      double vgs_slope;
+      int_set_Ax10 = (int)(tmp_set_A*10);
+      frac_set_A = tmp_set_A*10 - int_set_Ax10;
+      if ( g_tab[int_set_Ax10] >0 && g_tab[int_set_Ax10+1] >0 ){
+        vgs_slope = (g_tab[int_set_Ax10+1]-g_tab[int_set_Ax10]);
+        vgs = g_tab[int_set_Ax10] + frac_set_A*vgs_slope;
         if (is_last_gtab_zero == 1){
           acc_err = 0;
         }
         is_last_gtab_zero = 0;
+        // I = I * (g_tab[191]-g_tab[190]) / vgs_slope;
       }else{
         if (is_new_set_A == 1){
           fixed_pid_out = pid_out;
@@ -896,6 +899,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         vgs = fixed_pid_out;
         is_last_gtab_zero = 1;
       }
+      par.rI.val = I;
       pid_out = vgs + acc_err*I;
 
       // limit pid_out
