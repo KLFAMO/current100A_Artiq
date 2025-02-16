@@ -38,7 +38,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-//#define PORT	5015          <----
+#define FLASH_USER_START_ADDR  ((uint32_t)0x081E0000)  // bank 2
+#define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,9 +58,6 @@ TIM_HandleTypeDef htim7;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-//int sock, g;						<----
-//struct sockaddr_in address;      <---
-//err_t err = -1;					<----
 
 char spi_buf_set[50], spi_buf_lem[50], spi_buf_mos[50];
 double v_ref = 4.0;
@@ -96,6 +94,49 @@ void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
 double g_tab[300];
+
+void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
+    HAL_FLASH_Unlock();
+
+    FLASH_EraseInitTypeDef eraseInitStruct;
+    uint32_t sectorError;
+
+    // Erase the required flash sector
+    eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
+    eraseInitStruct.Banks        = FLASH_BANK_2;  // Bank 2
+    eraseInitStruct.Sector       = FLASH_SECTOR_7; // Sector 7 (the last one)
+    eraseInitStruct.NbSectors    = 1;
+    eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+    if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
+        HAL_FLASH_Lock();
+        return;  // Błąd kasowania
+    }
+
+    // Save data to flash memory in 256-bit blocks
+    uint64_t flash_word[4];  // 32 bajty = 4 x 64-bit double
+    for (uint32_t i = 0; i < size; i += 4) {  // Co 4 wartości (bo każda ma 8 bajtów)
+        flash_word[0] = (i < size) ? ((uint64_t*)data)[i] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[1] = (i + 1 < size) ? ((uint64_t*)data)[i + 1] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[2] = (i + 2 < size) ? ((uint64_t*)data)[i + 2] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[3] = (i + 3 < size) ? ((uint64_t*)data)[i + 3] : 0xFFFFFFFFFFFFFFFF;
+
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 8, (uint64_t)flash_word) != HAL_OK) {
+            HAL_FLASH_Lock();
+            return;  // Save error
+        }
+    }
+
+    HAL_FLASH_Lock();
+}
+
+void Flash_Read_Array(uint32_t address, double *data, uint32_t size) {
+    uint64_t *flash_ptr = (uint64_t*)address; // pointer to flash memory
+
+    for (uint32_t i = 0; i < size; i++) {
+        data[i] = *(volatile double*)&flash_ptr[i];
+    }
+}
 
 /* USER CODE END PV */
 
@@ -170,6 +211,10 @@ int main(void)
   //tcp_client_init();
   tcp_server_init();
   initInterface();
+
+  // read g_tab from flash
+  Flash_Read_Array(FLASH_USER_START_ADDR, g_tab, 300);
+
   par.gt0.val = g_tab[0];
   par.gt1.val = g_tab[10];
   par.gt5.val = g_tab[50];
@@ -784,6 +829,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             par.cur.val = 0;
             par.mode.val = 0;
             par.calib.val = 0;
+            // save g_tab to flash
+            Flash_Write_Array(FLASH_USER_START_ADDR, g_tab, 300);
             par.gt0.val = g_tab[0];
             par.gt1.val = g_tab[10];
             par.gt5.val = g_tab[50];
