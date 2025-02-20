@@ -25,6 +25,8 @@ pointer getPointer(pointer p, char *s)
   if (strcmp(p.type, "parameters") == 0)
   {
     parameters *ptmp = (parameters *)p.p;
+    if (strcasecmp(s, "VER") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->ver), .type = "value"};
     if (strcasecmp(s, "ADC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
     if (strcasecmp(s, "DAC") == 0)
@@ -69,6 +71,12 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->gt5), .type = "value"};
     if (strcasecmp(s, "GT10") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->gt10), .type = "value"};
+    if (strcasecmp(s, "SAVE") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->save), .type = "value"};
+    if (strcasecmp(s, "LOAD") == 0)
+        pout = (pointer){.p = (void *)&(ptmp->load), .type = "value"};
+    if (strcasecmp(s, "VERREAD") == 0)
+        pout = (pointer){.p = (void *)&(ptmp->veread), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -166,6 +174,8 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
+  par.version = 1; // version of parameters structure, increment if structure changes
+  par.ver = (value){.val = 1, .min = 0, .max = 100};
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
@@ -189,6 +199,9 @@ void initInterface(void)
   par.gt1 = (value){.val = 0, .min = 0, .max = 10};
   par.gt5 = (value){.val = 0, .min = 0, .max = 10};
   par.gt10 = (value){.val = 0, .min = 0, .max = 10};
+  par.save = (value){.val = 0, .min = 0, .max = 1};
+  par.load = (value){.val = 0, .min = 0, .max = 1};
+  par.veread = (value){.val = 0, .min = 0, .max = 1};
 }
 
 /*------------------------*/

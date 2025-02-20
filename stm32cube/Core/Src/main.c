@@ -38,7 +38,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define FLASH_USER_START_ADDR  ((uint32_t)0x081E0000)  // bank 2
+#define FLASH_PARAM_START_ADDR  ((uint32_t)0x081E0000)  // bank 2, sektor 7
+#define FLASH_GTAB_START_ADDR  ((uint32_t)0x081C0000)  // bank 2, sektor 6
 #define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
 /* USER CODE END PD */
 
@@ -103,8 +104,8 @@ void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
 
     // Erase the required flash sector
     eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
-    eraseInitStruct.Banks        = FLASH_BANK_2;  // Bank 2
-    eraseInitStruct.Sector       = FLASH_SECTOR_7; // Sector 7 (the last one)
+    eraseInitStruct.Banks        = FLASH_BANK_2;
+    eraseInitStruct.Sector       = FLASH_SECTOR_6;
     eraseInitStruct.NbSectors    = 1;
     eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
 
@@ -136,6 +137,50 @@ void Flash_Read_Array(uint32_t address, double *data, uint32_t size) {
     for (uint32_t i = 0; i < size; i++) {
         data[i] = *(volatile double*)&flash_ptr[i];
     }
+}
+
+void Flash_Write_Params(uint32_t address, parameters *data) {
+    HAL_FLASH_Unlock();  // Odblokowanie pamięci flash
+
+    FLASH_EraseInitTypeDef eraseInitStruct;
+    uint32_t sectorError;
+
+    // Kasowanie sektora przed zapisem
+    eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
+    eraseInitStruct.Banks        = FLASH_BANK_2;  // **Bank 2**
+    eraseInitStruct.Sector       = FLASH_SECTOR_7;  // **Sektor 7**
+    eraseInitStruct.NbSectors    = 1;
+    eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+    if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
+        HAL_FLASH_Lock();
+        return;  // Błąd kasowania
+    }
+    
+    uint64_t *data_ptr = (uint64_t*)data;
+
+    uint64_t flash_word[4];
+    for (uint32_t i = 0; i < sizeof(parameters) / 8; i += 4) {
+        flash_word[0] = (i < sizeof(parameters) / 8) ? data_ptr[i] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[1] = (i + 1 < sizeof(parameters) / 8) ? data_ptr[i + 1] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[2] = (i + 2 < sizeof(parameters) / 8) ? data_ptr[i + 2] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[3] = (i + 3 < sizeof(parameters) / 8) ? data_ptr[i + 3] : 0xFFFFFFFFFFFFFFFF;
+
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 8, (uint64_t)flash_word) != HAL_OK) {
+            HAL_FLASH_Lock();
+            return;  // Błąd zapisu
+        }
+    }
+
+    HAL_FLASH_Lock();  // Zablokowanie pamięci flash
+}
+
+void Flash_Read_Params(uint32_t address, parameters *data) {
+    memcpy(data, (void*)address, sizeof(parameters));  // Odczytaj całą strukturę
+}
+
+uint32_t Flash_Read_Version(uint32_t address) {
+    return *(volatile double*)address;  // Odczytaj pierwsze 4 bajty
 }
 
 /* USER CODE END PV */
@@ -212,8 +257,16 @@ int main(void)
   tcp_server_init();
   initInterface();
 
+  // read par from flash
+  if (par.version != Flash_Read_Version(FLASH_PARAM_START_ADDR)){
+    Flash_Write_Params(FLASH_PARAM_START_ADDR, &par);
+  }
+  else{
+    Flash_Read_Params(FLASH_PARAM_START_ADDR, &par);
+  }
+
   // read g_tab from flash
-  Flash_Read_Array(FLASH_USER_START_ADDR, g_tab, 300);
+  Flash_Read_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
 
   par.gt0.val = g_tab[0];
   par.gt1.val = g_tab[10];
@@ -238,6 +291,18 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
+    if (par.save.val == 1){
+      par.save.val = 0;
+      Flash_Write_Params(FLASH_PARAM_START_ADDR, &par);
+    }
+    if (par.load.val == 1){
+      par.load.val = 0;
+      Flash_Read_Params(FLASH_PARAM_START_ADDR, &par);
+    }
+    if (par.veread.val == 1){
+      par.veread.val = 0;
+      par.ver.val = (double)Flash_Read_Version(FLASH_PARAM_START_ADDR);
+    }
 
 	}
   /* USER CODE END 3 */
@@ -804,14 +869,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         calib_cycles_cnt = 0;
         calib_i_cnt = 0;
         par.cur.val = 0;
-        par.mode.val = 2;
+        // par.mode.val = 2;
+        par.mode.val = 0;  //<---
         par.calib.val = 2;
       }   
       if (par.calib.val > 1.5 && par.calib.val < 2.5){
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
           //save results to g_tab
-          g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
+          // g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
+          g_tab[(int)(calib_i_cnt*10)] = calib_i_cnt/100; // <---
           //set next value
           calib_i_cnt += 0.1;
           if (par.cur.val > par.imax.val){
@@ -830,7 +897,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             par.mode.val = 0;
             par.calib.val = 0;
             // save g_tab to flash
-            Flash_Write_Array(FLASH_USER_START_ADDR, g_tab, 300);
+            Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
             par.gt0.val = g_tab[0];
             par.gt1.val = g_tab[10];
             par.gt5.val = g_tab[50];
@@ -1000,4 +1067,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-

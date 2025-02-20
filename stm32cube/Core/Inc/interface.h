@@ -27,9 +27,9 @@ typedef struct{
 }mestab;
 
 typedef struct {
+    double val;
     double min;
     double max;
-    double val;
     char* cmdset;
     ison tabon;
     mestab mes;
@@ -60,6 +60,8 @@ typedef struct{
 
 
 typedef struct {
+    double version;
+    value ver;
     sadc adc;
     sdac dac;
     value I;
@@ -82,11 +84,16 @@ typedef struct {
     value gt5;
     value gt10;
     value lemsh;
+    value save;
+    value load;
+    value veread;
 } parameters;
 
 pointer getPointer(pointer,char * );
 void initInterface(void);
 void setParam(value*, double);
+// void Flash_Write_Params(uint32_t address, parameters *data);
+// void Flash_Read_Params(uint32_t address, parameters *data);
 
 
 #endif /* INC_INTERFACE_H_ */
