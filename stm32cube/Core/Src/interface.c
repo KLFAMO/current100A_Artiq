@@ -174,14 +174,14 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 1; // version of parameters structure, increment if structure changes
+  par.version = 2; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
-  par.mode = (value){.val = 0, .min = 0, .max = 2};
+  par.mode = (value){.val = 0, .min = 0, .max = 3};
   par.ermax = (value){.val = 2, .min = 0, .max = 5};
   par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
   par.goff = (value){.val = 0, .min = 0, .max = 4};
@@ -195,6 +195,7 @@ void initInterface(void)
   par.imax = (value){.val = 20, .min = 0, .max = 26};
   par.calib = (value){.val = 0, .min = 0, .max = 4};
   par.lemsh = (value){.val = 0, .min = -1, .max = 1};
+  par.vg = (value){.val = 0, .min = 0, .max = 5};
   par.gt0 = (value){.val = 0, .min = 0, .max = 10};
   par.gt1 = (value){.val = 0, .min = 0, .max = 10};
   par.gt5 = (value){.val = 0, .min = 0, .max = 10};

@@ -41,7 +41,7 @@ USB micro - not used yet
 User interface is available via TCP/IP on port 10. Depending on configuration IP address is static or taken from DHCP - this must be set when programming uC. After connecting to the device user is able to change setting by sending commands.
 
 ## Commands
-### For basic control
+### Bbasic control
 
 `MODE 0` - switch off current
 
@@ -57,9 +57,17 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 ### Advanced settings
 
+`MODE 3` - set gate voltage using `VG` parameter
+
 `I -0.04` - set gain -0.04 (this is bese gain for 50A - it is rescaled by uC for lower current due to udjust transistor characteristics)
 
-`DIR x` - L2 coil current direction (x=0: current positive, x=1: current negative, x=0: no current - all transistors blocked)
+`DIR x` - L2 coil current direction (x=-1: current positive, x=1: current negative, x=0: no current - all transistors blocked)
+
+`VG` - current gate voltage; in `MODE 3` is set manually
+
+`CALIB 1` - gate voltage - current characteristics callibration. Improves current control.
+
+`CALIB 4` - LEM zero current callibration (automaticaly done during startup)
 
 # Issues
 

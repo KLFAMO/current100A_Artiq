@@ -239,7 +239,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  HAL_Delay(500);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -252,8 +252,9 @@ int main(void)
   MX_SPI5_Init();
   /* USER CODE BEGIN 2 */
 
-  tcp_server_init();
+  // tcp_server_init();
   //tcp_client_init();
+  // HAL_Delay(2000);
   tcp_server_init();
   initInterface();
 
@@ -864,8 +865,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM7) {
     LD1_GPIO_Port->BSRR = LD1_Pin;
 
-    if (par.calib.val > 0.1){
-      if (par.calib.val < 1.5){
+    if (par.calib.val > 0.1){  
+      if (par.calib.val < 1.5){  //calib 1
+        // gate calibration - init state
         calib_cycles_cnt = 0;
         calib_i_cnt = 0;
         par.cur.val = 0;
@@ -873,7 +875,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         par.mode.val = 0;  //<---
         par.calib.val = 2;
       }   
-      if (par.calib.val > 1.5 && par.calib.val < 2.5){
+      if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
+        // gate calibration - increase current
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
           //save results to g_tab
@@ -887,7 +890,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
           par.cur.val = calib_i_cnt;
         }
       }
-      if (par.calib.val > 2.5 && par.calib.val < 3.5){
+      if (par.calib.val > 2.5 && par.calib.val < 3.5){  //calib 3
+        // gate calibration - decrease current
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
           calib_i_cnt -= 0.1;
@@ -905,7 +909,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
           }
         }
       }
-      if (par.calib.val > 3.5 && par.calib.val < 4.5){
+      if (par.calib.val > 3.5 && par.calib.val < 4.5){  // calib 4
         // lem zero current callibration
         par.mode.val = 0;
         double acc = 0;
@@ -1029,6 +1033,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  set_dac_mos(pid_out);
 
       acc_err = acc_err + err;
+	  }
+
+    else if (par.mode.val == 3) {  // set gate voltage manually
+
+      // set coils direction
+      if (par.dir.val>0.5){
+        // RESET L2_LEFT, SET L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
+		  } else if (par.dir.val<-0.5){
+        // SET L2_LEFT, RESET L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+		  } else{
+        // RESET both L2_LEFT and L2_RIGHT
+        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+		  }
+      
+		  send_adc_cnvs(25);
+		  lem_A = get_lem_A();
+
+		  set_dac_mos(par.vg.val);
 	  }
 
     LD1_GPIO_Port->BSRR = (uint32_t)LD1_Pin << 16U;
