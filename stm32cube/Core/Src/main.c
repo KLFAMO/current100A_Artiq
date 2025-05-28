@@ -94,7 +94,7 @@ void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
-double g_tab[300];
+double g_tab[300]; // gate-current caracteristic table
 
 void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
     HAL_FLASH_Unlock();
@@ -111,7 +111,7 @@ void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
 
     if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
         HAL_FLASH_Lock();
-        return;  // Błąd kasowania
+        return;  // Error erasing
     }
 
     // Save data to flash memory in 256-bit blocks
@@ -140,21 +140,21 @@ void Flash_Read_Array(uint32_t address, double *data, uint32_t size) {
 }
 
 void Flash_Write_Params(uint32_t address, parameters *data) {
-    HAL_FLASH_Unlock();  // Odblokowanie pamięci flash
+    HAL_FLASH_Unlock();  // unlock flash
 
     FLASH_EraseInitTypeDef eraseInitStruct;
     uint32_t sectorError;
 
-    // Kasowanie sektora przed zapisem
+    // erase sector before writing
     eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
     eraseInitStruct.Banks        = FLASH_BANK_2;  // **Bank 2**
-    eraseInitStruct.Sector       = FLASH_SECTOR_7;  // **Sektor 7**
+    eraseInitStruct.Sector       = FLASH_SECTOR_7;  // **Sector 7**
     eraseInitStruct.NbSectors    = 1;
     eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
 
     if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
         HAL_FLASH_Lock();
-        return;  // Błąd kasowania
+        return;  // error erasing
     }
     
     uint64_t *data_ptr = (uint64_t*)data;
@@ -168,19 +168,19 @@ void Flash_Write_Params(uint32_t address, parameters *data) {
 
         if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 8, (uint64_t)flash_word) != HAL_OK) {
             HAL_FLASH_Lock();
-            return;  // Błąd zapisu
+            return;  // Error writing
         }
     }
 
-    HAL_FLASH_Lock();  // Zablokowanie pamięci flash
+    HAL_FLASH_Lock();  // Lock flash after writing
 }
 
 void Flash_Read_Params(uint32_t address, parameters *data) {
-    memcpy(data, (void*)address, sizeof(parameters));  // Odczytaj całą strukturę
+    memcpy(data, (void*)address, sizeof(parameters));  // Read parameters from flash
 }
 
 uint32_t Flash_Read_Version(uint32_t address) {
-    return *(volatile double*)address;  // Odczytaj pierwsze 4 bajty
+    return *(volatile double*)address;  // Read first 4 bytes as version
 }
 
 /* USER CODE END PV */
@@ -708,9 +708,6 @@ void send_single_adc_cnv(){
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
 	__NOP();
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
-//	for (int i = 0; i < 6; i++) {
-//		__NOP();
-//	}
 }
 
 void send_adc_cnvs(int n){
@@ -744,7 +741,6 @@ double get_adc_lem(){
 
 double get_adc_set(){
 
-	char msg[100];
 	int adc_val_int=0;
 
 	uint32_t code = 0x000000;
@@ -768,8 +764,7 @@ double get_adc_set(){
 }
 
 double get_set_V(){
-	set_v = get_adc_set();
-	// return (set_v - 0.007) * 3.316; 
+	set_v = get_adc_set(); 
   return (set_v - 0.0085) * 3.316; // tock driver
 }
 
@@ -871,8 +866,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         calib_cycles_cnt = 0;
         calib_i_cnt = 0;
         par.cur.val = 0;
-        // par.mode.val = 2;
-        par.mode.val = 0;  //<---
+        par.mode.val = 2;
         par.calib.val = 2;
       }   
       if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
@@ -880,8 +874,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if (calib_cycles_cnt > 1000){
           calib_cycles_cnt = 0;
           //save results to g_tab
-          // g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
-          g_tab[(int)(calib_i_cnt*10)] = calib_i_cnt/100; // <---
+          g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
           //set next value
           calib_i_cnt += 0.1;
           if (par.cur.val > par.imax.val){
@@ -902,6 +895,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             par.calib.val = 0;
             // save g_tab to flash
             Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
+            // save some values to control parameters
             par.gt0.val = g_tab[0];
             par.gt1.val = g_tab[10];
             par.gt5.val = g_tab[50];
@@ -980,8 +974,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  //increase gain I if lower current (because of gate characteristics of transistor)
 		  I = par.I.val;
 
-		  
-
 		  // current change limit for smooth current changes
 		  if ( tmp_set_A > (set_A + par.ermax.val) ){
 			  tmp_set_A = tmp_set_A - par.ermax.val;
@@ -1021,14 +1013,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       pid_out = vgs + acc_err*I;
 
       // limit pid_out
-		  if (pid_out > par.imax.val ){
-			  pid_out = par.imax.val;
-		  }
-		  if (pid_out < 0 ){
-			  pid_out = 0;
-		  }
+		  // if (pid_out > par.imax.val ){
+			//   pid_out = par.imax.val;
+		  // }
+		  // if (pid_out < 0 ){
+			//   pid_out = 0;
+		  // }
 
-      par.vg.val = pid_out;
+      setParam(&par.vg, pid_out);
+      // par.vg.val = pid_out;
 
 		  set_dac_mos(pid_out);
 
