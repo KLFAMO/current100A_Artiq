@@ -1012,16 +1012,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       par.rI.val = I;
       pid_out = vgs + acc_err*I;
 
-      // limit pid_out
-		  // if (pid_out > par.imax.val ){
-			//   pid_out = par.imax.val;
-		  // }
-		  // if (pid_out < 0 ){
-			//   pid_out = 0;
-		  // }
-
       setParam(&par.vg, pid_out);
-      // par.vg.val = pid_out;
 
 		  set_dac_mos(pid_out);
 
