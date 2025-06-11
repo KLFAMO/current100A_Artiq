@@ -932,24 +932,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
-      // set coils direction
-      if (par.dir.val>0.5){
-        // RESET L2_LEFT, SET L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
-		  } else if (par.dir.val<-0.5){
-        // SET L2_LEFT, RESET L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-		  } else{
-        // RESET both L2_LEFT and L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-		  }
-
-      
-		  send_adc_cnvs(25);
+      send_adc_cnvs(25);
 		  lem_A = get_lem_A();
+
+      // TODO: add some protection for current direction change if current is not zero
+
+      if (par.lemA.val < par.dst.val){
+        // set coils direction
+        if (par.dir.val>0.5){
+          // RESET L2_LEFT, SET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
+        } else if (par.dir.val<-0.5){
+          // SET L2_LEFT, RESET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        } else{
+          // RESET both L2_LEFT and L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        }
+      }
       
 		  if (par.mode.val == 1){
 			  in_set_v = get_set_V()*10;
@@ -1021,23 +1024,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     else if (par.mode.val == 3) {  // set gate voltage manually
 
-      // set coils direction
-      if (par.dir.val>0.5){
-        // RESET L2_LEFT, SET L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
-		  } else if (par.dir.val<-0.5){
-        // SET L2_LEFT, RESET L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-		  } else{
-        // RESET both L2_LEFT and L2_RIGHT
-        L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-        L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-		  }
-      
-		  send_adc_cnvs(25);
-		  lem_A = get_lem_A();
+      send_adc_cnvs(25);
+		  par.lemA.val = get_lem_A();
+
+      if (par.lemA.val < par.dst.val){
+        // set coils direction
+        if (par.dir.val>0.5){
+          // RESET L2_LEFT, SET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
+        } else if (par.dir.val<-0.5){
+          // SET L2_LEFT, RESET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        } else{
+          // RESET both L2_LEFT and L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        }
+      }
 
 		  set_dac_mos(par.vg.val);
 	  }

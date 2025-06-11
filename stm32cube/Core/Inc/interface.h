@@ -70,6 +70,7 @@ typedef struct {
     value cur;
     value dcur;
     value dir;
+    value dst; // direction switch treshold
     value mode;
     value ermax;
     value aermax;

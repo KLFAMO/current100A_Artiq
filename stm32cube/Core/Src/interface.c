@@ -38,19 +38,21 @@ pointer getPointer(pointer p, char *s)
     if (strcasecmp(s, "D") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->D), .type = "value"};
     if (strcasecmp(s, "DIR") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->dir), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->dir), .type = "value"};
+    if (strcasecmp(s, "DST") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->dst), .type = "value"};
     if (strcasecmp(s, "MODE") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
     if (strcasecmp(s, "ERMAX") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->ermax), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->ermax), .type = "value"};
     if (strcasecmp(s, "AERMAX") == 0)
       pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
     if (strcasecmp(s, "GOFF") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->goff), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->goff), .type = "value"};
     if (strcasecmp(s, "CUR") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
     if (strcasecmp(s, "DCUR") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
+	    pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
     if (strcasecmp(s, "SETA") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
     if (strcasecmp(s, "LEMA") == 0)
@@ -179,6 +181,7 @@ void initInterface(void)
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
+  par.dst = (value){.val = 0.01, .min = 0, .max = 0.1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 3};
