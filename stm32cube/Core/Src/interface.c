@@ -176,7 +176,7 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 2; // version of parameters structure, increment if structure changes
+  par.version = 3; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};

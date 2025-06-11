@@ -68,6 +68,7 @@ const double LSB_DAC = 4.0/pow(2, 20);
 double lem_v = 0;
 double lem_A = 0;
 double set_v = 0;
+double set_dir = 1;
 double in_set_v = 0;
 double last_in_set_v = 0;
 double set_A = 0;
@@ -932,18 +933,38 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
+      // measure current
       send_adc_cnvs(25);
 		  lem_A = get_lem_A();
+      
+      // get set current
+      if (par.mode.val == 1){
+			  in_set_v = get_set_V()*10;
+			  set_A = in_set_v; // 1A_lem = 0.1V_set
+		  }
+		  if (par.mode.val == 2){
+			  set_A = par.cur.val;
+		  }
 
-      // TODO: add some protection for current direction change if current is not zero
+      // check set current direction
+      set_dir = (set_A < 0.0) ? -1 : 1;
 
+      // check if set current is in the same direction as measured current
+      // if not, set set_A to 0
+      set_A = (set_dir == par.dir.val) ? fabs(set_A) : 0;
+
+      // only if measured current is close to 0, change direction if needed
       if (par.lemA.val < par.dst.val){
-        // set coils direction
-        if (par.dir.val>0.5){
+        
+        // set direction same as set_dir
+        setParam(&par.dir, set_dir);
+
+        // set coils direction (hardware)
+        if (par.dir.val==1){
           // RESET L2_LEFT, SET L2_RIGHT
           L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
           L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
-        } else if (par.dir.val<-0.5){
+        } else if (par.dir.val==-1){
           // SET L2_LEFT, RESET L2_RIGHT
           L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
           L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
@@ -954,13 +975,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         }
       }
       
-		  if (par.mode.val == 1){
-			  in_set_v = get_set_V()*10;
-			  set_A = in_set_v; // 1A_lem = 0.1V_set
-		  }
-		  if (par.mode.val == 2){
-			  set_A = par.cur.val;
-		  }
 		  par.setA.val = in_set_v;
 		  par.lemA.val = lem_A;
 
@@ -992,6 +1006,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
       err = lem_A - tmp_set_A;
 
+      // calculate v_gate voltage based on g_tab
       int int_set_Ax10;
       double frac_set_A;
       double vgs_slope;
@@ -1004,7 +1019,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
           acc_err = 0;
         }
         is_last_gtab_zero = 0;
-        // I = I * (g_tab[191]-g_tab[190]) / vgs_slope;
       }else{
         if (is_new_set_A == 1){
           fixed_pid_out = pid_out;

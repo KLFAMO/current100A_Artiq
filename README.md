@@ -63,6 +63,8 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 `DIR x` - L2 coil current direction (x=-1: current positive, x=1: current negative, x=0: no current - all transistors blocked)
 
+`DST x` - direction switching treshold; current direction switchin in coil L2 is possible only if absolute current value is less than x
+
 `VG` - current gate voltage; in `MODE 3` is set manually
 
 `CALIB 1` - gate voltage - current characteristics callibration. Improves current control.
