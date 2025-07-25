@@ -38,7 +38,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-//#define PORT	5015          <----
+#define FLASH_PARAM_START_ADDR  ((uint32_t)0x081E0000)  // bank 2, sektor 7
+#define FLASH_GTAB_START_ADDR  ((uint32_t)0x081C0000)  // bank 2, sektor 6
+#define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,9 +59,6 @@ TIM_HandleTypeDef htim7;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-//int sock, g;						<----
-//struct sockaddr_in address;      <---
-//err_t err = -1;					<----
 
 char spi_buf_set[50], spi_buf_lem[50], spi_buf_mos[50];
 double v_ref = 4.0;
@@ -69,15 +68,23 @@ const double LSB_DAC = 4.0/pow(2, 20);
 double lem_v = 0;
 double lem_A = 0;
 double set_v = 0;
+double set_dir = 1;
 double in_set_v = 0;
 double last_in_set_v = 0;
 double set_A = 0;
 double last_set_A = 0;
+double tmp_set_A = 0;
 double mos_v = 0;
 double err = 0;
 double acc_err = 0;
 double pid_out = 0;
+double fixed_pid_out = 0;
 double I = 0;
+double vgs = 1;
+int is_last_gtab_zero = 0;
+int is_new_set_A = 0;
+int calib_cycles_cnt = 0;
+double calib_i_cnt = 0;
 
 double get_adc_lem();
 double get_adc_set();
@@ -87,6 +94,95 @@ int need_change_sign = 0;
 void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
+
+double g_tab[300]; // gate-current caracteristic table
+
+void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
+    HAL_FLASH_Unlock();
+
+    FLASH_EraseInitTypeDef eraseInitStruct;
+    uint32_t sectorError;
+
+    // Erase the required flash sector
+    eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
+    eraseInitStruct.Banks        = FLASH_BANK_2;
+    eraseInitStruct.Sector       = FLASH_SECTOR_6;
+    eraseInitStruct.NbSectors    = 1;
+    eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+    if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
+        HAL_FLASH_Lock();
+        return;  // Error erasing
+    }
+
+    // Save data to flash memory in 256-bit blocks
+    uint64_t flash_word[4];  // 32 bajty = 4 x 64-bit double
+    for (uint32_t i = 0; i < size; i += 4) {  // Co 4 wartości (bo każda ma 8 bajtów)
+        flash_word[0] = (i < size) ? ((uint64_t*)data)[i] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[1] = (i + 1 < size) ? ((uint64_t*)data)[i + 1] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[2] = (i + 2 < size) ? ((uint64_t*)data)[i + 2] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[3] = (i + 3 < size) ? ((uint64_t*)data)[i + 3] : 0xFFFFFFFFFFFFFFFF;
+
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 8, (uint64_t)flash_word) != HAL_OK) {
+            HAL_FLASH_Lock();
+            return;  // Save error
+        }
+    }
+
+    HAL_FLASH_Lock();
+}
+
+void Flash_Read_Array(uint32_t address, double *data, uint32_t size) {
+    uint64_t *flash_ptr = (uint64_t*)address; // pointer to flash memory
+
+    for (uint32_t i = 0; i < size; i++) {
+        data[i] = *(volatile double*)&flash_ptr[i];
+    }
+}
+
+void Flash_Write_Params(uint32_t address, parameters *data) {
+    HAL_FLASH_Unlock();  // unlock flash
+
+    FLASH_EraseInitTypeDef eraseInitStruct;
+    uint32_t sectorError;
+
+    // erase sector before writing
+    eraseInitStruct.TypeErase    = FLASH_TYPEERASE_SECTORS;
+    eraseInitStruct.Banks        = FLASH_BANK_2;  // **Bank 2**
+    eraseInitStruct.Sector       = FLASH_SECTOR_7;  // **Sector 7**
+    eraseInitStruct.NbSectors    = 1;
+    eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+    if (HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError) != HAL_OK) {
+        HAL_FLASH_Lock();
+        return;  // error erasing
+    }
+    
+    uint64_t *data_ptr = (uint64_t*)data;
+
+    uint64_t flash_word[4];
+    for (uint32_t i = 0; i < sizeof(parameters) / 8; i += 4) {
+        flash_word[0] = (i < sizeof(parameters) / 8) ? data_ptr[i] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[1] = (i + 1 < sizeof(parameters) / 8) ? data_ptr[i + 1] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[2] = (i + 2 < sizeof(parameters) / 8) ? data_ptr[i + 2] : 0xFFFFFFFFFFFFFFFF;
+        flash_word[3] = (i + 3 < sizeof(parameters) / 8) ? data_ptr[i + 3] : 0xFFFFFFFFFFFFFFFF;
+
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 8, (uint64_t)flash_word) != HAL_OK) {
+            HAL_FLASH_Lock();
+            return;  // Error writing
+        }
+    }
+
+    HAL_FLASH_Lock();  // Lock flash after writing
+}
+
+void Flash_Read_Params(uint32_t address, parameters *data) {
+    memcpy(data, (void*)address, sizeof(parameters));  // Read parameters from flash
+}
+
+uint32_t Flash_Read_Version(uint32_t address) {
+    return *(volatile double*)address;  // Read first 4 bytes as version
+}
 
 /* USER CODE END PV */
 
@@ -144,7 +240,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  HAL_Delay(500);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -157,10 +253,28 @@ int main(void)
   MX_SPI5_Init();
   /* USER CODE BEGIN 2 */
 
-  tcp_server_init();
+  // tcp_server_init();
   //tcp_client_init();
+  // HAL_Delay(2000);
   tcp_server_init();
   initInterface();
+
+  // read par from flash
+  if (par.version != Flash_Read_Version(FLASH_PARAM_START_ADDR)){
+    Flash_Write_Params(FLASH_PARAM_START_ADDR, &par);
+  }
+  else{
+    Flash_Read_Params(FLASH_PARAM_START_ADDR, &par);
+  }
+
+  // read g_tab from flash
+  Flash_Read_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
+
+  par.gt0.val = g_tab[0];
+  par.gt1.val = g_tab[10];
+  par.gt5.val = g_tab[50];
+  par.gt10.val = g_tab[100];
+  par.calib.val = 4; // lem_A calibration
 
   HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
@@ -179,6 +293,18 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
+    if (par.save.val == 1){
+      par.save.val = 0;
+      Flash_Write_Params(FLASH_PARAM_START_ADDR, &par);
+    }
+    if (par.load.val == 1){
+      par.load.val = 0;
+      Flash_Read_Params(FLASH_PARAM_START_ADDR, &par);
+    }
+    if (par.veread.val == 1){
+      par.veread.val = 0;
+      par.ver.val = (double)Flash_Read_Version(FLASH_PARAM_START_ADDR);
+    }
 
 	}
   /* USER CODE END 3 */
@@ -402,9 +528,9 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 80;
+  htim7.Init.Prescaler = 79;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 300;
+  htim7.Init.Period = 100;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -583,9 +709,6 @@ void send_single_adc_cnv(){
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
 	__NOP();
 	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
-//	for (int i = 0; i < 6; i++) {
-//		__NOP();
-//	}
 }
 
 void send_adc_cnvs(int n){
@@ -594,69 +717,41 @@ void send_adc_cnvs(int n){
 	}
 }
 
-
+#define TIMEOUT_MS 10
 double get_adc_lem(){
-
 	uint32_t code = 0x000000;
 	double adc_val;
 
+  __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
+  while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin) {}
 
-//	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
+  LEM_RDL_GPIO_Port->BSRR = (uint32_t)LEM_RDL_Pin << 16U;
+  HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 100);
+  LEM_RDL_GPIO_Port->BSRR = LEM_RDL_Pin;
 
-	 for (int i = 0; i < 10; i++) {
-	        __NOP();
-	    }
-
-	 while (HAL_GPIO_ReadPin(LEM_BUSY_GPIO_Port, LEM_BUSY_Pin) == GPIO_PIN_SET) {
-	         // Czekaj na zakończenie konwersji
-	     }
-//	 HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
-	 HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
-
-	HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 200);
-	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
-
-
-	((uint8_t *)&code)[2] = (unsigned int)spi_buf_lem[0];
-	((uint8_t *)&code)[1] = (unsigned int)spi_buf_lem[1];
-	((uint8_t *)&code)[0] = (unsigned int)spi_buf_lem[2];
+	 ((uint8_t *)&code)[2] = (unsigned int)spi_buf_lem[0];
+	 ((uint8_t *)&code)[1] = (unsigned int)spi_buf_lem[1];
+	 ((uint8_t *)&code)[0] = (unsigned int)spi_buf_lem[2];
 
 	adc_val = code* LSB_ADC;
 	if(code >= HALF_CODE){
 		adc_val -= 2*v_ref;
 	}
-//	adc_val = adc_val/0.377 + 0.04;
-//	adc_val = (adc_val/0.377)*1000;
-
-//	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 	return adc_val;
-
 }
 
 double get_adc_set(){
 
-	char msg[100];
 	int adc_val_int=0;
-//	sprintf(msg, "get_adc_set start\r\n");
-//	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
 	uint32_t code = 0x000000;
 	double adc_val;
 
-//	HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_RESET);
+	while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin) {}
 
-//	for (int i = 0; i < 2; i++) {
-//	        __NOP();
-//	    }
-
-	while (HAL_GPIO_ReadPin(SET_BUSY_GPIO_Port, SET_BUSY_Pin) == GPIO_PIN_SET) {
-	    }
-
-	HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_RESET);
-
-	HAL_SPI_Receive(&hspi2, (uint8_t*)spi_buf_set, 3, 100);
-	HAL_GPIO_WritePin(SET_RDL_GPIO_Port, SET_RDL_Pin, GPIO_PIN_SET);
+  SET_RDL_GPIO_Port->BSRR = (uint32_t)SET_RDL_Pin << 16U;
+  HAL_SPI_Receive(&hspi2, (uint8_t*)spi_buf_set, 3, 100);
+  SET_RDL_GPIO_Port->BSRR = SET_RDL_Pin;
 
 	((uint8_t *)&code)[2] = (unsigned int)spi_buf_set[0];
 	((uint8_t *)&code)[1] = (unsigned int)spi_buf_set[1];
@@ -670,14 +765,13 @@ double get_adc_set(){
 }
 
 double get_set_V(){
-	set_v = get_adc_set();
-	return (set_v - 0.007) * 3.316;
+	set_v = get_adc_set(); 
+  return (set_v - 0.0085) * 3.316; // tock driver
 }
 
 double get_lem_A(){
 	lem_v = get_adc_lem();
-//	return lem_v*30.77-0.15;
-	return (lem_v - 0.00478 )*41.363;
+  return (lem_v + par.lemsh.val )*41.363; // tock driver
 }
 
 void set_dac_mos(double dac){
@@ -765,100 +859,209 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM7) {
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, SET);
+    LD1_GPIO_Port->BSRR = LD1_Pin;
+
+    if (par.calib.val > 0.1){  
+      if (par.calib.val < 1.5){  //calib 1
+        // gate calibration - init state
+        calib_cycles_cnt = 0;
+        calib_i_cnt = 0;
+        par.cur.val = 0;
+        par.mode.val = 2;
+        par.calib.val = 2;
+      }   
+      if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
+        // gate calibration - increase current
+        if (calib_cycles_cnt > 1000){
+          calib_cycles_cnt = 0;
+          //save results to g_tab
+          g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
+          //set next value
+          calib_i_cnt += 0.1;
+          if (par.cur.val > par.imax.val){
+            par.calib.val = 3;
+          }
+          par.cur.val = calib_i_cnt;
+        }
+      }
+      if (par.calib.val > 2.5 && par.calib.val < 3.5){  //calib 3
+        // gate calibration - decrease current
+        if (calib_cycles_cnt > 1000){
+          calib_cycles_cnt = 0;
+          calib_i_cnt -= 0.1;
+          par.cur.val = calib_i_cnt;
+          if (par.cur.val <= 0){
+            par.cur.val = 0;
+            par.mode.val = 0;
+            par.calib.val = 0;
+            // save g_tab to flash
+            Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
+            // save some values to control parameters
+            par.gt0.val = g_tab[0];
+            par.gt1.val = g_tab[10];
+            par.gt5.val = g_tab[50];
+            par.gt10.val = g_tab[100];
+          }
+        }
+      }
+      if (par.calib.val > 3.5 && par.calib.val < 4.5){  // calib 4
+        // lem zero current callibration
+        par.mode.val = 0;
+        double acc = 0;
+        for (int i=0; i<100; i++){
+          send_adc_cnvs(25);
+          acc += get_lem_A();
+        }
+        acc = -acc / 100;
+        
+        // par.lemsh.val = 1;
+        par.lemsh.val += acc / 41.363;
+        par.calib.val = 0;
+      }
+      calib_cycles_cnt++;
+    }
 
 	  if (par.mode.val == 0) { // switch off current and reset pi values
+      send_adc_cnvs(25);
+		  par.lemA.val = get_lem_A(); 
+			par.setA.val = get_set_V()*10;
 		  set_dac_mos(0);
 		  err = 0;
 		  acc_err = 0;
-		  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-		  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
+      L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+      L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
-		  send_adc_cnvs(100);
+
+      // measure current
+      send_adc_cnvs(25);
 		  lem_A = get_lem_A();
-		  last_set_A = set_A; // torm
-		  if (par.mode.val == 1){
+      
+      // get set current
+      if (par.mode.val == 1){
 			  in_set_v = get_set_V()*10;
 			  set_A = in_set_v; // 1A_lem = 0.1V_set
 		  }
 		  if (par.mode.val == 2){
 			  set_A = par.cur.val;
 		  }
+
+      // check set current direction
+      set_dir = (set_A < 0.0) ? -1 : 1;
+
+      // check if set current is in the same direction as measured current
+      // if not, set set_A to 0
+      set_A = (set_dir == par.dir.val) ? fabs(set_A) : 0;
+
+      // only if measured current is close to 0, change direction if needed
+      if (par.lemA.val < par.dst.val){
+        
+        // set direction same as set_dir
+        setParam(&par.dir, set_dir);
+
+        // set coils direction (hardware)
+        if (par.dir.val==1){
+          // RESET L2_LEFT, SET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
+        } else if (par.dir.val==-1){
+          // SET L2_LEFT, RESET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        } else{
+          // RESET both L2_LEFT and L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        }
+      }
+      
 		  par.setA.val = in_set_v;
 		  par.lemA.val = lem_A;
 
+      // check if new set_A value
+      if (fabs(last_set_A - set_A) > 0.05){
+        is_new_set_A = 1;
+        acc_err = 0;
+      }
+      else{
+        is_new_set_A = 0;
+      }
+		  last_set_A = set_A;
+
 		  //increase gain I if lower current (because of gate characteristics of transistor)
 		  I = par.I.val;
-//		  if (fabs(lem_A) < 2){
-//			  I = I*5;
-//		  }
-//		  else if (fabs(lem_A) < 5){
-//			  I = I*2;
-//		  }
 
-		  par.rI.val = I;
-
-//		  if ( signbit(set_A) != signbit(lem_A) ){
-//			  if (fabs(lem_A) > 0.01){
-//				  set_A = 0;
-//				  need_change_sign = 1;
-//			  }else{
-//				  if (need_change_sign){
-//					  if (set_A <0){
-//						  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-//						  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
-//					  }else{
-//						  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
-//						  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-//					  }
-//					  need_change_sign = 0;
-//				  }
-//			  }
-//		  }
-
-		  err = lem_A - set_A;
-
-		  // error limit for smooth current changes
-//		  if (err > par.ermax.val){
-//			  err = par.ermax.val;
-//		  }
-//		  if (err < -par.ermax.val){
-//			  err = -par.ermax.val;
-//		  }
-
-		  acc_err = acc_err + err;
-
-		  // error limit for smooth current changes
-//		  if (acc_err > par.aermax.val){acc_err = par.aermax.val;}
-//		  if (acc_err < -par.aermax.val){acc_err = -par.aermax.val;}
-
-		  pid_out = par.goff.val + acc_err*I;
-		  if (pid_out > 9 ){
-			  pid_out = 9;
+		  // current change limit for smooth current changes
+		  if ( tmp_set_A > (set_A + par.ermax.val) ){
+			  tmp_set_A = tmp_set_A - par.ermax.val;
+        acc_err = 0;
 		  }
-		  if (pid_out < 0 ){
-			  pid_out = 0;
+		  else if ( tmp_set_A < (set_A - par.ermax.val) ){
+			  tmp_set_A = tmp_set_A + par.ermax.val;
+        acc_err = 0;
 		  }
+      else{
+        tmp_set_A = set_A;
+      }
+
+      err = lem_A - tmp_set_A;
+
+      // calculate v_gate voltage based on g_tab
+      int int_set_Ax10;
+      double frac_set_A;
+      double vgs_slope;
+      int_set_Ax10 = (int)(tmp_set_A*10);
+      frac_set_A = tmp_set_A*10 - int_set_Ax10;
+      if ( g_tab[int_set_Ax10] >0 && g_tab[int_set_Ax10+1] >0 ){
+        vgs_slope = (g_tab[int_set_Ax10+1]-g_tab[int_set_Ax10]);
+        vgs = g_tab[int_set_Ax10] + frac_set_A*vgs_slope;
+        if (is_last_gtab_zero == 1){
+          acc_err = 0;
+        }
+        is_last_gtab_zero = 0;
+      }else{
+        if (is_new_set_A == 1){
+          fixed_pid_out = pid_out;
+        }
+        vgs = fixed_pid_out;
+        is_last_gtab_zero = 1;
+      }
+      par.rI.val = I;
+      pid_out = vgs + acc_err*I;
+
+      setParam(&par.vg, pid_out);
 
 		  set_dac_mos(pid_out);
-	//	  set_dac_mos(par.dac.ch1.volt.val);
 
-	//	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-
-//		  if (par.dir.val>0.5){
-//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, SET);
-//		  } else if (par.dir.val<-0.5){
-//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, SET);
-//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-//		  } else{
-//			  HAL_GPIO_WritePin(L2_LEFT_GPIO_Port, L2_LEFT_Pin, RESET);
-//			  HAL_GPIO_WritePin(L2_RIGHT_GPIO_Port, L2_RIGHT_Pin, RESET);
-//		  }
+      acc_err = acc_err + err;
 	  }
 
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, RESET);
+    else if (par.mode.val == 3) {  // set gate voltage manually
+
+      send_adc_cnvs(25);
+		  par.lemA.val = get_lem_A();
+
+      if (par.lemA.val < par.dst.val){
+        // set coils direction
+        if (par.dir.val>0.5){
+          // RESET L2_LEFT, SET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
+        } else if (par.dir.val<-0.5){
+          // SET L2_LEFT, RESET L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        } else{
+          // RESET both L2_LEFT and L2_RIGHT
+          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
+          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+        }
+      }
+
+		  set_dac_mos(par.vg.val);
+	  }
+
+    LD1_GPIO_Port->BSRR = (uint32_t)LD1_Pin << 16U;
     }
   /* USER CODE END Callback 1 */
 }
@@ -894,4 +1097,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
