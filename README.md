@@ -1,21 +1,21 @@
 # current100A_Artiq
-100A current driver compatible with Artiq. At the moment, device is compatible with Sinara package size and includes all Sinara connectors. There is no software compatibility yet.
-
-<img src="./images/current100A_general.png"  width="200" />
+100A current driver compatible with Artiq. At the moment, device is compatible with Sinara package size and includes all Sinara connectors. There is no ARTIQ software compatibility yet.
 
 
 ## High power circuit
 
 <img src="./images/current100A_scheme.png"  width="200" />
-<img src="./images/current100A_high_power_circuit.png"  width="230" />
+<img src="./images/current100A_high_power_circuit.jpg"  width="270" />
 <img src="./images/current100A_lem.png"  width="190" />
 
-Power supply - two wires (+ and -) from Delta Power Supply. (will be WAGO connector asap).
-Warning: 
+Power supply - two wires (+ and -) from Delta Power Supply.
 
-Coil 1 (L1) - two wires from one coil (will be WAGO connector asap)
+<img src="./images/current100A_high_power_connection.jpg"  width="210" />
+ 
 
-Coil 2 (L2) - two wires from second coil (this coil is direction switchable) (will be WAGO connector asap)
+Coil 1 (L1) - the first MOT coil.
+
+Coil 2 (L2) - the second MOT coil. This coil is direction switchable (`DIR x` instruction).
 
 LEM IN 100-S is used for current measurement.
 
@@ -34,14 +34,14 @@ SMA input - (-10V to +10V) current control by voltage (from external control pro
 
 USB micro - not used yet
 
-<img src="./images/current100A_font_panel.png"  width="150" />
+<img src="./images/current100A_front_panel.jpg"  width="200" />
 
 # User Interface
 
 User interface is available via TCP/IP on port 10. Depending on configuration IP address is static or taken from DHCP - this must be set when programming uC. After connecting to the device user is able to change setting by sending commands.
 
 ## Commands
-### Bbasic control
+### Basic control
 
 `MODE 0` - switch off current
 
