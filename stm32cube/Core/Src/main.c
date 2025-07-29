@@ -85,6 +85,7 @@ int is_last_gtab_zero = 0;
 int is_new_set_A = 0;
 int calib_cycles_cnt = 0;
 double calib_i_cnt = 0;
+double mode_tmp = 0;
 
 double get_adc_lem();
 double get_adc_set();
@@ -906,6 +907,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
       if (par.calib.val > 3.5 && par.calib.val < 4.5){  // calib 4
         // lem zero current callibration
+        mode_tmp = par.mode.val;
         par.mode.val = 0;
         double acc = 0;
         for (int i=0; i<100; i++){
@@ -917,6 +919,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // par.lemsh.val = 1;
         par.lemsh.val += acc / 41.363;
         par.calib.val = 0;
+        par.mode.val = mode_tmp; // restore mode
       }
       calib_cycles_cnt++;
     }

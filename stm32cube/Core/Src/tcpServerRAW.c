@@ -82,7 +82,8 @@ struct tcp_server_struct
   struct pbuf *p;         /* pointer on the received/to be transmitted pbuf */
 };
 
-const char *welcome_msg = "\ncurrent100A_Artiq>";
+// const char *welcome_msg = "\ncurrent100A_Artiq>";
+const char *welcome_msg = "\n";
 
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
