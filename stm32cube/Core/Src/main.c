@@ -41,6 +41,7 @@
 #define FLASH_PARAM_START_ADDR  ((uint32_t)0x081E0000)  // bank 2, sektor 7
 #define FLASH_GTAB_START_ADDR  ((uint32_t)0x081C0000)  // bank 2, sektor 6
 #define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
+#define GTAB_SIZE 				1000 // size of gate-current caracteristic table
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -96,7 +97,7 @@ void set_dac_mos(double dac);
 void send_single_adc_cnv();
 void send_adc_cnvs(int n);
 
-double g_tab[300]; // gate-current caracteristic table
+double g_tab[GTAB_SIZE]; // gate-current caracteristic table
 
 void Flash_Write_Array(uint32_t address, double *data, uint32_t size) {
     HAL_FLASH_Unlock();
@@ -269,7 +270,7 @@ int main(void)
   }
 
   // read g_tab from flash
-  Flash_Read_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
+  Flash_Read_Array(FLASH_GTAB_START_ADDR, g_tab, GTAB_SIZE);
 
   par.gt0.val = g_tab[0];
   par.gt1.val = g_tab[10];
@@ -873,7 +874,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }   
       if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
         // gate calibration - increase current
-        if (calib_cycles_cnt > 1000){
+        if (calib_cycles_cnt > GTAB_SIZE){
           calib_cycles_cnt = 0;
           //save results to g_tab
           g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
@@ -887,7 +888,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
       if (par.calib.val > 2.5 && par.calib.val < 3.5){  //calib 3
         // gate calibration - decrease current
-        if (calib_cycles_cnt > 1000){
+        if (calib_cycles_cnt > GTAB_SIZE){
           calib_cycles_cnt = 0;
           calib_i_cnt -= 0.1;
           par.cur.val = calib_i_cnt;
@@ -896,7 +897,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             par.mode.val = 0;
             par.calib.val = 0;
             // save g_tab to flash
-            Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, 300);
+            Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, GTAB_SIZE);
             // save some values to control parameters
             par.gt0.val = g_tab[0];
             par.gt1.val = g_tab[10];
