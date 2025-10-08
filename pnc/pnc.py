@@ -2,7 +2,7 @@
 """
 pnc.py — simple nc-like TCP client:
 - for each user line: open TCP -> send -> receive -> close
-- default: port 10, EOL=LF (no CR), timeout 0.01 s
+- default: port 10, EOL=LF (no CR), timeout 0.05 s
 - works on both Windows and Linux
 
 Examples:
@@ -28,8 +28,8 @@ def make_parser():
         help="end-of-line characters to append to sent text (default: LF)"
     )
     p.add_argument(
-        "--timeout", type=float, default=0.01,
-        help="timeout in seconds for reading a reply (default: 0.01)"
+        "--timeout", type=float, default=0.05,
+        help="timeout in seconds for reading a reply (default: 0.05)"
     )
     p.add_argument("--prompt", default="> ", help="prompt for interactive mode")
     # Diagnostic and behavior flags
