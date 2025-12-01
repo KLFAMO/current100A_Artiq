@@ -71,6 +71,16 @@ User interface is available via TCP/IP on port 10. Depending on configuration IP
 
 `CALIB 4` - LEM zero current callibration (automaticaly done during startup)
 
+## License
+
+[MIT](https://opensource.org/licenses/MIT)
+
+
+# Acknowledgments
+This work has received funding from the European Partnership on Metrology, co-financed by the European Union’s Horizon Europe Research and Innovation Programme and by the Participating States, under grant number 22IEM01 TOCK.
+
+![badge](images/Acknowledgement%20badge.png)
+
 # Issues
 
 Please add your comments in `Issues` Github section (in top of this website).
