@@ -614,8 +614,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_RESET);
@@ -662,12 +662,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ON_100A_Pin */
+  GPIO_InitStruct.Pin = ON_100A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(ON_100A_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LEM_RDL_Pin */
   GPIO_InitStruct.Pin = LEM_RDL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LEM_RDL_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DIR_L2_Pin */
+  GPIO_InitStruct.Pin = DIR_L2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(DIR_L2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SET_RDL_Pin */
   GPIO_InitStruct.Pin = SET_RDL_Pin;
@@ -768,12 +780,12 @@ double get_adc_set(){
 
 double get_set_V(){
 	set_v = get_adc_set(); 
-  return (set_v - 0.0085) * 3.316; // tock driver
+  return (set_v - 0.003) * 3.316; // aqura driver
 }
 
 double get_lem_A(){
 	lem_v = get_adc_lem();
-  return (lem_v + par.lemsh.val )*41.363; // tock driver
+  return (lem_v + par.lemsh.val )*41.363; // aqura driver
 }
 
 void set_dac_mos(double dac){
@@ -912,7 +924,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         par.mode.val = 0;
         double acc = 0;
         for (int i=0; i<100; i++){
-          send_adc_cnvs(25);
+          send_adc_cnvs(par.cnvs.val);
           acc += get_lem_A();
         }
         acc = -acc / 100;
@@ -926,9 +938,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
 
 	  if (par.mode.val == 0) { // switch off current and reset pi values
-      send_adc_cnvs(25);
+      send_adc_cnvs(par.cnvs.val);
 		  par.lemA.val = get_lem_A(); 
-			par.setA.val = get_set_V()*10;
+			par.setA.val = get_set_V()*par.vtoa.val;
 		  set_dac_mos(0);
 		  err = 0;
 		  acc_err = 0;
@@ -938,20 +950,31 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
       // measure current
-      send_adc_cnvs(25);
+      send_adc_cnvs(par.cnvs.val);
 		  lem_A = get_lem_A();
       
       // get set current
       if (par.mode.val == 1){
-			  in_set_v = get_set_V()*10;
-			  set_A = in_set_v; // 1A_lem = 0.1V_set
-		  }
+			  in_set_v = get_set_V();
+			  set_A = in_set_v*par.vtoa.val; // 1A_lem = 0.1V_set
+        if (set_A < par.itra.val){
+          set_A = 0;
+        }
+        if (HAL_GPIO_ReadPin(ON_100A_GPIO_Port, ON_100A_Pin) == GPIO_PIN_SET){
+          set_A = 0;
+          setParam(&par.onttl, 0);
+		    }
+        else{
+          setParam(&par.onttl, 1);
+        }
+      }
 		  if (par.mode.val == 2){
 			  set_A = par.cur.val;
 		  }
 
       // check set current direction
-      set_dir = (set_A < 0.0) ? -1 : 1;
+      // set_dir = (set_A < 0.0) ? -1 : 1;
+      set_dir = (HAL_GPIO_ReadPin(DIR_L2_GPIO_Port, DIR_L2_Pin) == GPIO_PIN_SET) ? 1 : -1;
 
       // check if set current is in the same direction as measured current
       // if not, set set_A to 0
@@ -1042,7 +1065,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     else if (par.mode.val == 3) {  // set gate voltage manually
 
-      send_adc_cnvs(25);
+      send_adc_cnvs(par.cnvs.val);
 		  par.lemA.val = get_lem_A();
 
       if (par.lemA.val < par.dst.val){

@@ -70,6 +70,7 @@ typedef struct {
     value cur;
     value dcur;
     value dir;
+    value udt;
     value dst; // direction switch treshold
     value mode;
     value ermax;
@@ -77,9 +78,13 @@ typedef struct {
     value goff;
     value lemA;
     value setA;
+    value cnvs;
     value vg; // gate voltage
     value calib;
     value imax;
+    value itra;
+    value vtoa;
+    value onttl;
     value gt0;
     value gt1;
     value gt5;

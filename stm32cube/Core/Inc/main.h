@@ -71,12 +71,16 @@ void Error_Handler(void);
 #define SET_ADC_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
 #define LD1_GPIO_Port GPIOB
+#define ON_100A_Pin GPIO_PIN_0
+#define ON_100A_GPIO_Port GPIOG
 #define LEM_RDL_Pin GPIO_PIN_11
 #define LEM_RDL_GPIO_Port GPIOE
 #define LEM_SCK_Pin GPIO_PIN_12
 #define LEM_SCK_GPIO_Port GPIOE
 #define LEM_ADC_Pin GPIO_PIN_13
 #define LEM_ADC_GPIO_Port GPIOE
+#define DIR_L2_Pin GPIO_PIN_11
+#define DIR_L2_GPIO_Port GPIOB
 #define SET_RDL_Pin GPIO_PIN_12
 #define SET_RDL_GPIO_Port GPIOB
 #define LD3_Pin GPIO_PIN_14

@@ -39,6 +39,16 @@ pointer getPointer(pointer p, char *s)
 	  pout = (pointer){.p = (void *)&(ptmp->D), .type = "value"};
     if (strcasecmp(s, "DIR") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->dir), .type = "value"};
+    if (strcasecmp(s, "UDT") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->udt), .type = "value"};
+    if (strcasecmp(s, "CNVS") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->cnvs), .type = "value"};
+    if (strcasecmp(s, "VTOA") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->vtoa), .type = "value"};
+    if (strcasecmp(s, "ONTTL") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->onttl), .type = "value"};
+    if (strcasecmp(s, "ITRA") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->itra), .type = "value"};
     if (strcasecmp(s, "DST") == 0)
       pout = (pointer){.p = (void *)&(ptmp->dst), .type = "value"};
     if (strcasecmp(s, "MODE") == 0)
@@ -176,11 +186,16 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 3; // version of parameters structure, increment if structure changes
+  par.version = 6; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
+  par.udt = (value){.val = 1, .min = 0, .max = 1};
+  par.cnvs = (value){.val = 20, .min = 1, .max = 25};
+  par.vtoa = (value){.val = 2, .min = 0, .max = 10};
+  par.itra = (value){.val = 0, .min = 0, .max = 0.6};
+  par.onttl = (value){.val = 0, .min = 0, .max = 1};
   par.dst = (value){.val = 0.01, .min = 0, .max = 0.1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
