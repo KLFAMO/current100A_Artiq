@@ -31,6 +31,10 @@ pointer getPointer(pointer p, char *s)
       pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
     if (strcasecmp(s, "DAC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
+    if (strcasecmp(s, "CONF") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->conf), .type = "conf"};
+    if (strcasecmp(s, "PID") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->pid), .type = "pid"};
     if (strcasecmp(s, "I") == 0)
 	  pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
     if (strcasecmp(s, "RI") == 0)
@@ -55,8 +59,10 @@ pointer getPointer(pointer p, char *s)
 	    pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
     if (strcasecmp(s, "ERMAX") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->ermax), .type = "value"};
-    if (strcasecmp(s, "AERMAX") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
+    // if (strcasecmp(s, "AERMAX") == 0)
+    //   pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
+    if (strcasecmp(s, "ACC_ERR") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->acc_err), .type = "value"};
     if (strcasecmp(s, "GOFF") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->goff), .type = "value"};
     if (strcasecmp(s, "CUR") == 0)
@@ -73,6 +79,8 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->calib), .type = "value"};
     if (strcasecmp(s, "LEMSH") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->lemsh), .type = "value"};
+    if (strcasecmp(s, "SETSH") == 0)
+        pout = (pointer){.p = (void *)&(ptmp->setsh), .type = "value"};
     if (strcasecmp(s, "IMAX") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->imax), .type = "value"};
     if (strcasecmp(s, "GT0") == 0)
@@ -130,6 +138,22 @@ pointer getPointer(pointer p, char *s)
         pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
     }
 
+  if (strcmp(p.type, "conf") == 0)
+  {
+    sconf *ptmp = (sconf *)p.p;
+    if (strcasecmp(s, "CP") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->cp), .type = "value"};
+  }
+
+  if (strcmp(p.type, "pid") == 0)
+  {
+    spid *ptmp = (spid *)p.p;
+    if (strcasecmp(s, "SLP") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->slp), .type = "value"};
+    if (strcasecmp(s, "IS") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->is), .type = "value"};
+  }
+
   if (strcmp(p.type, "value") == 0)
   {
     value *ptmp = (value *)p.p;
@@ -186,10 +210,10 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 6; // version of parameters structure, increment if structure changes
+  par.version = 8; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
   par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
-  par.rI = (value){.val = -0.04, .min = -0.5, .max = 0};
+  par.rI = (value){.val = 0, .min = -100, .max = 100};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
   par.udt = (value){.val = 1, .min = 0, .max = 1};
   par.cnvs = (value){.val = 20, .min = 1, .max = 25};
@@ -201,7 +225,8 @@ void initInterface(void)
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 3};
   par.ermax = (value){.val = 2, .min = 0, .max = 5};
-  par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
+  // par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
+  par.acc_err = (value){.val = 0, .min = -1000, .max = 1000};
   par.goff = (value){.val = 0, .min = 0, .max = 4};
   par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
   par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
@@ -213,6 +238,7 @@ void initInterface(void)
   par.imax = (value){.val = 20, .min = 0, .max = 26};
   par.calib = (value){.val = 0, .min = 0, .max = 4};
   par.lemsh = (value){.val = 0, .min = -1, .max = 1};
+  par.setsh = (value){.val = -0.003, .min = -1, .max = 1};
   par.vg = (value){.val = 0, .min = 0, .max = 5};
   par.gt0 = (value){.val = 0, .min = 0, .max = 10};
   par.gt1 = (value){.val = 0, .min = 0, .max = 10};
@@ -221,8 +247,10 @@ void initInterface(void)
   par.save = (value){.val = 0, .min = 0, .max = 1};
   par.load = (value){.val = 0, .min = 0, .max = 1};
   par.veread = (value){.val = 0, .min = 0, .max = 1};
+  par.conf.cp = (value){.val = 150, .min = 100, .max = 500};
+  par.pid.slp = (value){.val = 0, .min = 0, .max = 2};
+  par.pid.is = (value){.val = 0, .min = -2, .max = 0};
 }
-
 /*------------------------*/
 /*-----------------------------------------------------------*/
 

@@ -42,6 +42,7 @@
 #define FLASH_GTAB_START_ADDR  ((uint32_t)0x081C0000)  // bank 2, sektor 6
 #define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
 #define GTAB_SIZE 				1000 // size of gate-current caracteristic table
+#define CALIB_POINT_CYCLES 400
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,7 +78,7 @@ double last_set_A = 0;
 double tmp_set_A = 0;
 double mos_v = 0;
 double err = 0;
-double acc_err = 0;
+// double acc_err = 0;
 double pid_out = 0;
 double fixed_pid_out = 0;
 double I = 0;
@@ -87,7 +88,13 @@ int is_new_set_A = 0;
 int calib_cycles_cnt = 0;
 double calib_i_cnt = 0;
 double mode_tmp = 0;
+double last_conf_cp = 150;
+double last_adc_lem = 0;
+double last_adc_set = 0;
 
+static inline int wait_lem_ready(void);
+static inline int wait_set_ready(void);
+static inline void delay_cycles(volatile uint32_t);
 double get_adc_lem();
 double get_adc_set();
 double get_set_V();
@@ -282,6 +289,9 @@ int main(void)
   HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 
+  last_conf_cp = par.conf.cp.val;
+  __HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)par.conf.cp.val);
+  __HAL_TIM_SET_COUNTER(&htim7, 0);
   HAL_TIM_Base_Start_IT(&htim7);
 
   /* USER CODE END 2 */
@@ -306,6 +316,14 @@ int main(void)
     if (par.veread.val == 1){
       par.veread.val = 0;
       par.ver.val = (double)Flash_Read_Version(FLASH_PARAM_START_ADDR);
+    }
+    if (par.conf.cp.val != last_conf_cp){
+      uint32_t cp = (uint32_t)par.conf.cp.val;
+      HAL_TIM_Base_Stop_IT(&htim7);
+      __HAL_TIM_SET_AUTORELOAD(&htim7, cp);
+      __HAL_TIM_SET_COUNTER(&htim7, 0);
+      HAL_TIM_Base_Start_IT(&htim7);
+      last_conf_cp = par.conf.cp.val;
     }
 
 	}
@@ -532,7 +550,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 79;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 100;
+  htim7.Init.Period = 150;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -719,10 +737,19 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+static inline void delay_cycles(volatile uint32_t n) {
+    while (n--) {
+        __NOP();
+    }
+}
+
 void send_single_adc_cnv(){
-	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
-	__NOP();
-	HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_SET);
+  ADC_CNV_GPIO_Port->BSRR = ADC_CNV_Pin; // Set pin high
+	delay_cycles(4);
+	// HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
+  ADC_CNV_GPIO_Port->BSRR = (uint32_t)ADC_CNV_Pin << 16U; // Set pin low
+  delay_cycles(20);
 }
 
 void send_adc_cnvs(int n){
@@ -731,16 +758,44 @@ void send_adc_cnvs(int n){
 	}
 }
 
+#define ADC_BUSY_TIMEOUT_LOOPS 10000U
+static inline int wait_lem_ready(void){
+  uint32_t cnt = 0;
+  while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin){
+    if (++cnt > ADC_BUSY_TIMEOUT_LOOPS){
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static inline int wait_set_ready(void){
+  uint32_t cnt = 0;
+  while (SET_BUSY_GPIO_Port->IDR & SET_BUSY_Pin){
+    if (++cnt > ADC_BUSY_TIMEOUT_LOOPS){
+      return 0;
+    }
+  }
+  return 1;
+}
+
 #define TIMEOUT_MS 10
 double get_adc_lem(){
 	uint32_t code = 0x000000;
 	double adc_val;
 
-  __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
-  while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin) {}
+  delay_cycles(5);
+  // while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin) {}
+
+  if (!wait_lem_ready()){
+    return last_adc_lem; // return last value if timeout
+  }
 
   LEM_RDL_GPIO_Port->BSRR = (uint32_t)LEM_RDL_Pin << 16U;
-  HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 100);
+  if (HAL_SPI_Receive(&hspi4, (uint8_t*)spi_buf_lem, 3, 100) != HAL_OK) {
+    LEM_RDL_GPIO_Port->BSRR = LEM_RDL_Pin;
+    return last_adc_lem;
+}
   LEM_RDL_GPIO_Port->BSRR = LEM_RDL_Pin;
 
 	 ((uint8_t *)&code)[2] = (unsigned int)spi_buf_lem[0];
@@ -751,6 +806,7 @@ double get_adc_lem(){
 	if(code >= HALF_CODE){
 		adc_val -= 2*v_ref;
 	}
+  last_adc_lem = adc_val;
 	return adc_val;
 }
 
@@ -761,10 +817,16 @@ double get_adc_set(){
 	uint32_t code = 0x000000;
 	double adc_val;
 
-	while (LEM_BUSY_GPIO_Port->IDR & LEM_BUSY_Pin) {}
+  delay_cycles(3);
+	if (!wait_set_ready()){
+    return last_adc_set; // return last value if timeout
+  }
 
   SET_RDL_GPIO_Port->BSRR = (uint32_t)SET_RDL_Pin << 16U;
-  HAL_SPI_Receive(&hspi2, (uint8_t*)spi_buf_set, 3, 100);
+  if (HAL_SPI_Receive(&hspi2, (uint8_t*)spi_buf_set, 3, 100) != HAL_OK) {
+    SET_RDL_GPIO_Port->BSRR = SET_RDL_Pin;
+    return last_adc_set;
+  }
   SET_RDL_GPIO_Port->BSRR = SET_RDL_Pin;
 
 	((uint8_t *)&code)[2] = (unsigned int)spi_buf_set[0];
@@ -775,12 +837,13 @@ double get_adc_set(){
 	if(code >= HALF_CODE){
 		adc_val -= 2*v_ref;
 	}
+	last_adc_set = adc_val;
 	return adc_val;
 }
 
 double get_set_V(){
 	set_v = get_adc_set(); 
-  return (set_v - 0.003) * 3.316; // aqura driver
+  return (set_v + par.setsh.val) * 3.316; // aqura driver
 }
 
 double get_lem_A(){
@@ -810,7 +873,7 @@ void set_dac_mos(double dac){
 	HAL_GPIO_WritePin(MOS_CS_GPIO_Port, MOS_CS_Pin, GPIO_PIN_SET);
 
 	// update output
-	for(int i=0;i<8;i++);	//to make at least 20 ns delay
+  delay_cycles(6);
 	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
 }
 
@@ -886,7 +949,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }   
       if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
         // gate calibration - increase current
-        if (calib_cycles_cnt > GTAB_SIZE){
+        if (calib_cycles_cnt > CALIB_POINT_CYCLES){
           calib_cycles_cnt = 0;
           //save results to g_tab
           g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
@@ -900,7 +963,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
       if (par.calib.val > 2.5 && par.calib.val < 3.5){  //calib 3
         // gate calibration - decrease current
-        if (calib_cycles_cnt > GTAB_SIZE){
+        if (calib_cycles_cnt > CALIB_POINT_CYCLES){
           calib_cycles_cnt = 0;
           calib_i_cnt -= 0.1;
           par.cur.val = calib_i_cnt;
@@ -943,7 +1006,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			par.setA.val = get_set_V()*par.vtoa.val;
 		  set_dac_mos(0);
 		  err = 0;
-		  acc_err = 0;
+		  setParam(&par.acc_err, 0);
       L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
       L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
 	  }
@@ -1008,7 +1071,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       // check if new set_A value
       if (fabs(last_set_A - set_A) > 0.05){
         is_new_set_A = 1;
-        acc_err = 0;
+        if (par.calib.val < 0.1){
+          setParam(&par.acc_err, 0);
+        }
       }
       else{
         is_new_set_A = 0;
@@ -1021,11 +1086,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  // current change limit for smooth current changes
 		  if ( tmp_set_A > (set_A + par.ermax.val) ){
 			  tmp_set_A = tmp_set_A - par.ermax.val;
-        acc_err = 0;
+        if (par.calib.val < 0.1){
+          setParam(&par.acc_err, 0);
+        }
 		  }
 		  else if ( tmp_set_A < (set_A - par.ermax.val) ){
 			  tmp_set_A = tmp_set_A + par.ermax.val;
-        acc_err = 0;
+        if (par.calib.val < 0.1){
+          setParam(&par.acc_err, 0);
+        }
 		  }
       else{
         tmp_set_A = set_A;
@@ -1038,12 +1107,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       double frac_set_A;
       double vgs_slope;
       int_set_Ax10 = (int)(tmp_set_A*10);
+      if (int_set_Ax10 < 0){
+        int_set_Ax10 = 0;
+      }
+      if (int_set_Ax10 >= GTAB_SIZE-1){
+        int_set_Ax10 = GTAB_SIZE-2;
+      }
+
       frac_set_A = tmp_set_A*10 - int_set_Ax10;
       if ( g_tab[int_set_Ax10] >0 && g_tab[int_set_Ax10+1] >0 ){
+        // local slope of gate-current characteristic
         vgs_slope = (g_tab[int_set_Ax10+1]-g_tab[int_set_Ax10]);
+        setParam(&par.pid.slp, vgs_slope);
+        // linear interpolation between table points
         vgs = g_tab[int_set_Ax10] + frac_set_A*vgs_slope;
         if (is_last_gtab_zero == 1){
-          acc_err = 0;
+          setParam(&par.acc_err, 0);
         }
         is_last_gtab_zero = 0;
       }else{
@@ -1051,16 +1130,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
           fixed_pid_out = pid_out;
         }
         vgs = fixed_pid_out;
+        setParam(&par.pid.slp, 0);
         is_last_gtab_zero = 1;
       }
-      par.rI.val = I;
-      pid_out = vgs + acc_err*I;
+
+      I = par.I.val + par.pid.is.val * par.pid.slp.val;
+      if(I > par.I.max) I = par.I.max;
+      if(I < par.I.min) I = par.I.min;
+
+      // par.rI.val = I;
+      setParam(&par.rI, I);
+
+      pid_out = vgs + par.acc_err.val*I;
 
       setParam(&par.vg, pid_out);
 
 		  set_dac_mos(pid_out);
 
-      acc_err = acc_err + err;
+      setParam(&par.acc_err, par.acc_err.val + err);
 	  }
 
     else if (par.mode.val == 3) {  // set gate voltage manually

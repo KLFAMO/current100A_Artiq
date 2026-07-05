@@ -57,6 +57,15 @@ typedef struct{
 	sdacchannel ch1;
 } sdac;
 
+typedef struct{
+    value cp;
+} sconf;
+
+typedef struct{
+    value slp;
+    value is;
+} spid;
+
 
 
 typedef struct {
@@ -64,6 +73,8 @@ typedef struct {
     value ver;
     sadc adc;
     sdac dac;
+    sconf conf;
+    spid pid;
     value I;
     value rI;
     value D;
@@ -74,7 +85,8 @@ typedef struct {
     value dst; // direction switch treshold
     value mode;
     value ermax;
-    value aermax;
+    value acc_err; // accumulated error for PID
+    // value aermax;
     value goff;
     value lemA;
     value setA;
@@ -90,6 +102,7 @@ typedef struct {
     value gt5;
     value gt10;
     value lemsh;
+    value setsh;
     value save;
     value load;
     value veread;
