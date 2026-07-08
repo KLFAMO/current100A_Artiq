@@ -1,5 +1,12 @@
 v1
 trying to solve problems after restart, and noise and direction changes - still problems, 
 Added cycle period to params.
+
 v2
-trying to solve problems after restart, and noise and direction changes
+trying to solve problems after restart, and noise and direction changes.
+Works better but still problem for small current in mode 1.
+
+v3
+Trying to solve problem with small current in mode 1. Added option for reading g_tab.
+All g_tab elements should be larger than goff. Longer time for calibration.
+Added g_tab adaptation option (but will be tested later)

@@ -42,7 +42,6 @@
 #define FLASH_GTAB_START_ADDR  ((uint32_t)0x081C0000)  // bank 2, sektor 6
 #define FLASH_WORD_SIZE        (32)  // Flash word = 256-bit = 32 bytes
 #define GTAB_SIZE 				1000 // size of gate-current caracteristic table
-#define CALIB_POINT_CYCLES 400
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -94,6 +93,7 @@ double last_adc_set = 0;
 static inline int wait_lem_ready(void);
 static inline int wait_set_ready(void);
 static inline void delay_cycles(volatile uint32_t);
+void adapt_g_tab(int idx, double delta_vg);
 void update_direction_from_ttl_if_safe(void);
 double get_adc_lem();
 double get_adc_set();
@@ -280,10 +280,7 @@ int main(void)
   // read g_tab from flash
   Flash_Read_Array(FLASH_GTAB_START_ADDR, g_tab, GTAB_SIZE);
 
-  par.gt0.val = g_tab[0];
-  par.gt1.val = g_tab[10];
-  par.gt5.val = g_tab[50];
-  par.gt10.val = g_tab[100];
+  
   // par.calib.val = 4; // lem_A calibration
 
   HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
@@ -898,6 +895,68 @@ void update_direction_from_ttl_if_safe(void)
     }
 }
 
+#define GT_SMOOTH_ALPHA 0.1
+
+void adapt_g_tab(int idx, double delta_vg)
+{
+    if (idx < 0 || idx >= GTAB_SIZE - 1) {
+        return;
+    }
+
+    double alpha = par.gt.alpha.val;
+    double corr = alpha * delta_vg;
+
+    g_tab[idx]     += corr;
+    g_tab[idx + 1] += corr;
+
+
+    if (g_tab[idx] < 0.0) {
+        g_tab[idx] = 0.0;
+    }
+    if (g_tab[idx] > 5.0) {
+        g_tab[idx] = 5.0;
+    }
+
+    if (g_tab[idx + 1] < 0.0) {
+        g_tab[idx + 1] = 0.0;
+    }
+    if (g_tab[idx + 1] > 5.0) {
+        g_tab[idx + 1] = 5.0;
+    }
+
+    if (g_tab[idx + 1] < g_tab[idx]) {
+        double mid = 0.5 * (g_tab[idx] + g_tab[idx + 1]);
+        g_tab[idx]     = mid;
+        g_tab[idx + 1] = mid;
+    }
+
+    if (idx > 0 && g_tab[idx - 1] > g_tab[idx]) {
+        g_tab[idx - 1] += GT_SMOOTH_ALPHA * (g_tab[idx] - g_tab[idx - 1]);
+    }
+
+    if (idx + 2 < GTAB_SIZE && g_tab[idx + 2] < g_tab[idx + 1]) {
+        g_tab[idx + 2] += GT_SMOOTH_ALPHA * (g_tab[idx + 1] - g_tab[idx + 2]);
+    }
+
+    if (idx > 0) {
+        if (g_tab[idx - 1] < 0.0) {
+            g_tab[idx - 1] = 0.0;
+        }
+        if (g_tab[idx - 1] > 5.0) {
+            g_tab[idx - 1] = 5.0;
+        }
+    }
+
+    if (idx + 2 < GTAB_SIZE) {
+        if (g_tab[idx + 2] < 0.0) {
+            g_tab[idx + 2] = 0.0;
+        }
+        if (g_tab[idx + 2] > 5.0) {
+            g_tab[idx + 2] = 5.0;
+        }
+    }
+}
+
 /* USER CODE END 4 */
 
 /* MPU Configuration */
@@ -970,11 +1029,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }   
       if (par.calib.val > 1.5 && par.calib.val < 2.5){  //calib 2
         // gate calibration - increase current
-        if (calib_cycles_cnt > CALIB_POINT_CYCLES){
+        if (calib_cycles_cnt > par.cpcal.val){
           calib_cycles_cnt = 0;
           //save results to g_tab
+          double vg_to_save = par.vg.val;
           int idx = (int)round(calib_i_cnt*10.0);
-          g_tab[idx] = par.vg.val;
+          if (vg_to_save < par.goff.val){
+            vg_to_save = par.goff.val;
+          }
+          g_tab[idx] = vg_to_save;
           //set next value
           calib_i_cnt += 0.1;
           if (par.cur.val > par.imax.val){
@@ -985,7 +1048,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
       if (par.calib.val > 2.5 && par.calib.val < 3.5){  //calib 3
         // gate calibration - decrease current
-        if (calib_cycles_cnt > CALIB_POINT_CYCLES){
+        if (calib_cycles_cnt > par.cpcal.val/2){
           calib_cycles_cnt = 0;
           calib_i_cnt -= 0.1;
           par.cur.val = calib_i_cnt;
@@ -996,10 +1059,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             // save g_tab to flash
             Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, GTAB_SIZE);
             // save some values to control parameters
-            par.gt0.val = g_tab[0];
-            par.gt1.val = g_tab[10];
-            par.gt5.val = g_tab[50];
-            par.gt10.val = g_tab[100];
           }
         }
       }
@@ -1012,7 +1071,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
           send_adc_cnvs(par.cnvs.val);
           acc += get_lem_A();
         }
-        acc = -acc / 100;
+        acc = -acc / 100.0;
         
         // par.lem.offs.val = 1;
         par.lem.offs.val += acc / par.lem.scl.val;
@@ -1020,6 +1079,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         par.mode.val = mode_tmp; // restore mode
       }
       calib_cycles_cnt++;
+    }
+
+    int gt_idx = (int)round(par.gt.idx.val);
+    if (gt_idx < 0) gt_idx = 0;
+    if (gt_idx >= GTAB_SIZE) gt_idx = GTAB_SIZE - 1;
+
+    if (par.gt.save.val > 0.1){
+        g_tab[gt_idx] = par.gt.v.val;
+        par.gt.save.val = 0;
+    } else {
+        setParam(&par.gt.v, g_tab[gt_idx]);
+    }
+    if (par.gt.sflash.val > 0.1){
+        Flash_Write_Array(FLASH_GTAB_START_ADDR, g_tab, GTAB_SIZE);
+        par.gt.sflash.val = 0;
     }
 
 	  if (par.mode.val == 0) { // switch off current and reset pi values
@@ -1134,6 +1208,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         is_last_gtab_zero = 1;
       }
 
+      if (tmp_set_A > 0.1 && vgs < par.goff.val) {
+        vgs = par.goff.val;
+      }
+
       I = par.pid.i.val + par.pid.is.val * par.pid.slp.val;
       if(I > par.pid.i.max) I = par.pid.i.max;
       if(I < par.pid.i.min) I = par.pid.i.min;
@@ -1146,6 +1224,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       setParam(&par.vg, pid_out);
 
 		  set_dac_mos(pid_out);
+
+      // adaptive update of g_tab, RAM only
+      double delta_vg = pid_out - vgs;
+
+      if (par.gt.adapt.val > 0.5 &&
+          par.calib.val < 0.1 &&
+          tmp_set_A > 0.1 &&
+          fabs(set_A - tmp_set_A) < 0.02 &&
+          fabs(err) < par.gt.errmax.val &&
+          fabs(delta_vg) < par.gt.dvgmax.val &&
+          pid_out > par.goff.val &&
+          pid_out < 4.98) {
+
+          adapt_g_tab(int_set_Ax10, delta_vg);
+      }
 
       setParam(&par.acc_err, par.acc_err.val + err);
 	  }

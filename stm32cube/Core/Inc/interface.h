@@ -69,16 +69,25 @@ typedef struct{
     value scl;
 } sadc;
 
+typedef struct{
+    value idx;
+    value v;
+    value save;
+    value sflash;
+    value adapt;
+    value alpha;
+    value errmax;
+    value dvgmax;
+} sgt;
+
 typedef struct {
     double version;
     value ver;
-    // sadc adc;
     sadc lem;
     sadc set;
     sdac dac;
     sconf conf;
     spid pid;
-    // value I;
     value rI;
     value D;
     value cur;
@@ -89,24 +98,17 @@ typedef struct {
     value mode;
     value ermax;
     value acc_err; // accumulated error for PID
-    // value aermax;
     value goff;
-    // value lemA;
-    // value setA;
+    sgt gt;
     value cnvs;
     value vg; // gate voltage
     value calib;
+    value cpcal;
     value imax;
     value itra;
     value vtoa;
     value onttl;
     value dirttl;
-    value gt0;
-    value gt1;
-    value gt5;
-    value gt10;
-    // value lemsh;
-    // value setsh;
     value save;
     value load;
     value veread;

@@ -27,16 +27,12 @@ pointer getPointer(pointer p, char *s)
     parameters *ptmp = (parameters *)p.p;
     if (strcasecmp(s, "VER") == 0)
       pout = (pointer){.p = (void *)&(ptmp->ver), .type = "value"};
-    // if (strcasecmp(s, "ADC") == 0)
-    //   pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
     if (strcasecmp(s, "DAC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
     if (strcasecmp(s, "CONF") == 0)
       pout = (pointer){.p = (void *)&(ptmp->conf), .type = "conf"};
     if (strcasecmp(s, "PID") == 0)
       pout = (pointer){.p = (void *)&(ptmp->pid), .type = "pid"};
-    // if (strcasecmp(s, "I") == 0)
-	  // pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
     if (strcasecmp(s, "RI") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->rI), .type = "value"};
     if (strcasecmp(s, "D") == 0)
@@ -61,8 +57,6 @@ pointer getPointer(pointer p, char *s)
 	    pout = (pointer){.p = (void *)&(ptmp->mode), .type = "value"};
     if (strcasecmp(s, "ERMAX") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->ermax), .type = "value"};
-    // if (strcasecmp(s, "AERMAX") == 0)
-    //   pout = (pointer){.p = (void *)&(ptmp->aermax), .type = "value"};
     if (strcasecmp(s, "ACC_ERR") == 0)
       pout = (pointer){.p = (void *)&(ptmp->acc_err), .type = "value"};
     if (strcasecmp(s, "GOFF") == 0)
@@ -71,10 +65,6 @@ pointer getPointer(pointer p, char *s)
 	    pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
     if (strcasecmp(s, "DCUR") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
-    // if (strcasecmp(s, "SETA") == 0)
-    // 	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
-    // if (strcasecmp(s, "LEMA") == 0)
-    // 	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
     if (strcasecmp(s, "VG") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->vg), .type = "value"};
     if (strcasecmp(s, "CALIB") == 0)
@@ -83,26 +73,18 @@ pointer getPointer(pointer p, char *s)
     	  pout = (pointer){.p = (void *)&(ptmp->lem), .type = "adc"};
     if (strcasecmp(s, "SET") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->set), .type = "adc"};
-    // if (strcasecmp(s, "LEMSH") == 0)
-    // 	  pout = (pointer){.p = (void *)&(ptmp->lemsh), .type = "value"};
-    // if (strcasecmp(s, "SETSH") == 0)
-    //     pout = (pointer){.p = (void *)&(ptmp->setsh), .type = "value"};
     if (strcasecmp(s, "IMAX") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->imax), .type = "value"};
-    if (strcasecmp(s, "GT0") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->gt0), .type = "value"};
-    if (strcasecmp(s, "GT1") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->gt1), .type = "value"};
-    if (strcasecmp(s, "GT5") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->gt5), .type = "value"};
-    if (strcasecmp(s, "GT10") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->gt10), .type = "value"};
     if (strcasecmp(s, "SAVE") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->save), .type = "value"};
     if (strcasecmp(s, "LOAD") == 0)
         pout = (pointer){.p = (void *)&(ptmp->load), .type = "value"};
     if (strcasecmp(s, "VERREAD") == 0)
         pout = (pointer){.p = (void *)&(ptmp->veread), .type = "value"};
+    if (strcasecmp(s, "GT") == 0)
+        pout = (pointer){.p = (void *)&(ptmp->gt), .type = "sgt"};
+    if (strcasecmp(s, "CPCAL") == 0)
+        pout = (pointer){.p = (void *)&(ptmp->cpcal), .type = "value"};
   }
 
   if (strcmp(p.type, "adc") == 0)
@@ -115,21 +97,6 @@ pointer getPointer(pointer p, char *s)
     if (strcasecmp(s, "SCL") == 0)
       pout = (pointer){.p = (void *)&(ptmp->scl), .type = "value"};
   }
-
-  // if (strcmp(p.type, "adcchannel") == 0)
-  // {
-  //   sadcchannel *ptmp = (sadcchannel *)p.p;
-  //   if (strcasecmp(s, "RAW") == 0)
-  //         pout = (pointer){.p = (void *)&(ptmp->raw), .type = "value"};
-  //   if (strcasecmp(s, "VOLT") == 0)
-  //     pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
-  //   if (strcasecmp(s, "AVR") == 0)
-  //     pout = (pointer){.p = (void *)&(ptmp->avr), .type = "value"};
-  //   if (strcasecmp(s, "CORON") == 0)
-  //     pout = (pointer){.p = (void *)&(ptmp->coron), .type = "value"};
-  //   if (strcasecmp(s, "CORFACTOR") == 0)
-  //     pout = (pointer){.p = (void *)&(ptmp->corfactor), .type = "value"};
-  // }
 
   if (strcmp(p.type, "dac") == 0)
     {
@@ -165,6 +132,27 @@ pointer getPointer(pointer p, char *s)
       pout = (pointer){.p = (void *)&(ptmp->is), .type = "value"};
     if (strcasecmp(s, "CTA") == 0)
       pout = (pointer){.p = (void *)&(ptmp->cta), .type = "value"};
+  }
+
+  if (strcmp(p.type, "sgt") == 0)
+  {
+    sgt *ptmp = (sgt *)p.p;
+    if (strcasecmp(s, "idx") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->idx), .type = "value"};
+    if (strcasecmp(s, "v") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->v), .type = "value"};
+    if (strcasecmp(s, "save") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->save), .type = "value"};
+    if (strcasecmp(s, "sflash") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->sflash), .type = "value"};
+    if (strcasecmp(s, "adapt") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->adapt), .type = "value"};
+    if (strcasecmp(s, "alpha") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->alpha), .type = "value"};
+    if (strcasecmp(s, "errmax") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->errmax), .type = "value"};
+    if (strcasecmp(s, "dvgmax") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->dvgmax), .type = "value"};
   }
 
   if (strcmp(p.type, "value") == 0)
@@ -223,9 +211,8 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 10; // version of parameters structure, increment if structure changes
+  par.version = 12; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
-  // par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.pid.i = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = 0, .min = -100, .max = 100};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
@@ -240,16 +227,9 @@ void initInterface(void)
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 3};
   par.ermax = (value){.val = 2, .min = 0, .max = 5};
-  // par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
   par.acc_err = (value){.val = 0, .min = -1000, .max = 1000};
-  par.goff = (value){.val = 0, .min = 0, .max = 4};
-  // par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
-  // par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
-  // par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
-  // par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
+  par.goff = (value){.val = 3.9, .min = 0, .max = 4};
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
-  // par.setA = (value){.val = 0, .min = -100, .max = 100};
-  // par.lemA = (value){.val = 0, .min = -100, .max = 100};
   par.imax = (value){.val = 20, .min = 0, .max = 26};
   par.calib = (value){.val = 0, .min = 0, .max = 4};
   par.lem.ma = (value){.val = 0, .min = 0, .max = 100};
@@ -258,20 +238,23 @@ void initInterface(void)
   par.set.ma = (value){.val = 0, .min = 0, .max = 100};
   par.set.offs = (value){.val = -0.003, .min = -1, .max = 1};
   par.set.scl = (value){.val = 3.316, .min = 0.00001, .max = 100};
-  // par.lemsh = (value){.val = 0, .min = -1, .max = 1};
-  // par.setsh = (value){.val = -0.003, .min = -1, .max = 1};
   par.vg = (value){.val = 0, .min = 0, .max = 5};
-  par.gt0 = (value){.val = 0, .min = 0, .max = 10};
-  par.gt1 = (value){.val = 0, .min = 0, .max = 10};
-  par.gt5 = (value){.val = 0, .min = 0, .max = 10};
-  par.gt10 = (value){.val = 0, .min = 0, .max = 10};
   par.save = (value){.val = 0, .min = 0, .max = 1};
   par.load = (value){.val = 0, .min = 0, .max = 1};
   par.veread = (value){.val = 0, .min = 0, .max = 1};
   par.conf.cp = (value){.val = 150, .min = 100, .max = 500};
   par.pid.slp = (value){.val = 0, .min = 0, .max = 2};
   par.pid.is = (value){.val = 0, .min = -2, .max = 0};
-  par.pid.cta = (value){.val = 0.2, .min = 0, .max = 1};
+  par.pid.cta = (value){.val = 0.35, .min = 0, .max = 3};
+  par.gt.idx = (value){.val = 0, .min = 0, .max = 999};
+  par.gt.v = (value){.val = 0, .min = -10, .max = 10};
+  par.gt.save = (value){.val = 0, .min = 0, .max = 1};
+  par.gt.sflash = (value){.val = 0, .min = 0, .max = 1};
+  par.gt.adapt = (value){.val = 0, .min = 0, .max = 1};
+  par.gt.alpha = (value){.val = 0.00001, .min = 0, .max = 0.01};
+  par.gt.errmax = (value){.val = 0.05, .min = 0, .max = 1};
+  par.gt.dvgmax = (value){.val = 0.2, .min = 0, .max = 1};
+  par.cpcal = (value){.val = 2000, .min = 1, .max = 10000};
 }
 /*------------------------*/
 /*-----------------------------------------------------------*/
