@@ -35,18 +35,13 @@ typedef struct {
     mestab mes;
 } value;
 
-typedef struct {
-	value raw;
-    value volt;
-    value avr;
-    value coron;
-    value corfactor;
-}sadcchannel;
-
-typedef struct{
-    sadcchannel ch1;
-    sadcchannel ch2;
-} sadc;
+// typedef struct {
+// 	value raw;
+//     value volt;
+//     value avr;
+//     value coron;
+//     value corfactor;
+// }sadcchannel;
 
 typedef struct {
 	value raw;
@@ -62,20 +57,28 @@ typedef struct{
 } sconf;
 
 typedef struct{
+    value i;
     value slp;
     value is;
+    value cta;
 } spid;
 
-
+typedef struct{
+    value ma;
+    value offs;
+    value scl;
+} sadc;
 
 typedef struct {
     double version;
     value ver;
-    sadc adc;
+    // sadc adc;
+    sadc lem;
+    sadc set;
     sdac dac;
     sconf conf;
     spid pid;
-    value I;
+    // value I;
     value rI;
     value D;
     value cur;
@@ -88,8 +91,8 @@ typedef struct {
     value acc_err; // accumulated error for PID
     // value aermax;
     value goff;
-    value lemA;
-    value setA;
+    // value lemA;
+    // value setA;
     value cnvs;
     value vg; // gate voltage
     value calib;
@@ -97,12 +100,13 @@ typedef struct {
     value itra;
     value vtoa;
     value onttl;
+    value dirttl;
     value gt0;
     value gt1;
     value gt5;
     value gt10;
-    value lemsh;
-    value setsh;
+    // value lemsh;
+    // value setsh;
     value save;
     value load;
     value veread;

@@ -27,16 +27,16 @@ pointer getPointer(pointer p, char *s)
     parameters *ptmp = (parameters *)p.p;
     if (strcasecmp(s, "VER") == 0)
       pout = (pointer){.p = (void *)&(ptmp->ver), .type = "value"};
-    if (strcasecmp(s, "ADC") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
+    // if (strcasecmp(s, "ADC") == 0)
+    //   pout = (pointer){.p = (void *)&(ptmp->adc), .type = "adc"};
     if (strcasecmp(s, "DAC") == 0)
       pout = (pointer){.p = (void *)&(ptmp->dac), .type = "dac"};
     if (strcasecmp(s, "CONF") == 0)
       pout = (pointer){.p = (void *)&(ptmp->conf), .type = "conf"};
     if (strcasecmp(s, "PID") == 0)
       pout = (pointer){.p = (void *)&(ptmp->pid), .type = "pid"};
-    if (strcasecmp(s, "I") == 0)
-	  pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
+    // if (strcasecmp(s, "I") == 0)
+	  // pout = (pointer){.p = (void *)&(ptmp->I), .type = "value"};
     if (strcasecmp(s, "RI") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->rI), .type = "value"};
     if (strcasecmp(s, "D") == 0)
@@ -51,6 +51,8 @@ pointer getPointer(pointer p, char *s)
       pout = (pointer){.p = (void *)&(ptmp->vtoa), .type = "value"};
     if (strcasecmp(s, "ONTTL") == 0)
       pout = (pointer){.p = (void *)&(ptmp->onttl), .type = "value"};
+    if (strcasecmp(s, "DIRTTL") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->dirttl), .type = "value"};
     if (strcasecmp(s, "ITRA") == 0)
       pout = (pointer){.p = (void *)&(ptmp->itra), .type = "value"};
     if (strcasecmp(s, "DST") == 0)
@@ -69,18 +71,22 @@ pointer getPointer(pointer p, char *s)
 	    pout = (pointer){.p = (void *)&(ptmp->cur), .type = "value"};
     if (strcasecmp(s, "DCUR") == 0)
 	    pout = (pointer){.p = (void *)&(ptmp->dcur), .type = "value"};
-    if (strcasecmp(s, "SETA") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
-    if (strcasecmp(s, "LEMA") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
+    // if (strcasecmp(s, "SETA") == 0)
+    // 	  pout = (pointer){.p = (void *)&(ptmp->setA), .type = "value"};
+    // if (strcasecmp(s, "LEMA") == 0)
+    // 	  pout = (pointer){.p = (void *)&(ptmp->lemA), .type = "value"};
     if (strcasecmp(s, "VG") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->vg), .type = "value"};
     if (strcasecmp(s, "CALIB") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->calib), .type = "value"};
-    if (strcasecmp(s, "LEMSH") == 0)
-    	  pout = (pointer){.p = (void *)&(ptmp->lemsh), .type = "value"};
-    if (strcasecmp(s, "SETSH") == 0)
-        pout = (pointer){.p = (void *)&(ptmp->setsh), .type = "value"};
+    if (strcasecmp(s, "LEM") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->lem), .type = "adc"};
+    if (strcasecmp(s, "SET") == 0)
+    	  pout = (pointer){.p = (void *)&(ptmp->set), .type = "adc"};
+    // if (strcasecmp(s, "LEMSH") == 0)
+    // 	  pout = (pointer){.p = (void *)&(ptmp->lemsh), .type = "value"};
+    // if (strcasecmp(s, "SETSH") == 0)
+    //     pout = (pointer){.p = (void *)&(ptmp->setsh), .type = "value"};
     if (strcasecmp(s, "IMAX") == 0)
     	  pout = (pointer){.p = (void *)&(ptmp->imax), .type = "value"};
     if (strcasecmp(s, "GT0") == 0)
@@ -102,25 +108,28 @@ pointer getPointer(pointer p, char *s)
   if (strcmp(p.type, "adc") == 0)
   {
     sadc *ptmp = (sadc *)p.p;
-    if (strcasecmp(s, "CH1") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->ch1), .type = "adcchannel"};
-    if (strcasecmp(s, "CH2") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->ch2), .type = "adcchannel"};
+    if (strcasecmp(s, "MA") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->ma), .type = "value"};
+    if (strcasecmp(s, "OFFS") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->offs), .type = "value"};
+    if (strcasecmp(s, "SCL") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->scl), .type = "value"};
   }
-  if (strcmp(p.type, "adcchannel") == 0)
-  {
-    sadcchannel *ptmp = (sadcchannel *)p.p;
-    if (strcasecmp(s, "RAW") == 0)
-          pout = (pointer){.p = (void *)&(ptmp->raw), .type = "value"};
-    if (strcasecmp(s, "VOLT") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
-    if (strcasecmp(s, "AVR") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->avr), .type = "value"};
-    if (strcasecmp(s, "CORON") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->coron), .type = "value"};
-    if (strcasecmp(s, "CORFACTOR") == 0)
-      pout = (pointer){.p = (void *)&(ptmp->corfactor), .type = "value"};
-  }
+
+  // if (strcmp(p.type, "adcchannel") == 0)
+  // {
+  //   sadcchannel *ptmp = (sadcchannel *)p.p;
+  //   if (strcasecmp(s, "RAW") == 0)
+  //         pout = (pointer){.p = (void *)&(ptmp->raw), .type = "value"};
+  //   if (strcasecmp(s, "VOLT") == 0)
+  //     pout = (pointer){.p = (void *)&(ptmp->volt), .type = "value"};
+  //   if (strcasecmp(s, "AVR") == 0)
+  //     pout = (pointer){.p = (void *)&(ptmp->avr), .type = "value"};
+  //   if (strcasecmp(s, "CORON") == 0)
+  //     pout = (pointer){.p = (void *)&(ptmp->coron), .type = "value"};
+  //   if (strcasecmp(s, "CORFACTOR") == 0)
+  //     pout = (pointer){.p = (void *)&(ptmp->corfactor), .type = "value"};
+  // }
 
   if (strcmp(p.type, "dac") == 0)
     {
@@ -148,10 +157,14 @@ pointer getPointer(pointer p, char *s)
   if (strcmp(p.type, "pid") == 0)
   {
     spid *ptmp = (spid *)p.p;
+    if (strcasecmp(s, "I") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->i), .type = "value"};
     if (strcasecmp(s, "SLP") == 0)
       pout = (pointer){.p = (void *)&(ptmp->slp), .type = "value"};
     if (strcasecmp(s, "IS") == 0)
       pout = (pointer){.p = (void *)&(ptmp->is), .type = "value"};
+    if (strcasecmp(s, "CTA") == 0)
+      pout = (pointer){.p = (void *)&(ptmp->cta), .type = "value"};
   }
 
   if (strcmp(p.type, "value") == 0)
@@ -210,9 +223,10 @@ void setParam(value *p, double val)
 
 void initInterface(void)
 {
-  par.version = 8; // version of parameters structure, increment if structure changes
+  par.version = 10; // version of parameters structure, increment if structure changes
   par.ver = (value){.val = 1, .min = 0, .max = 100};
-  par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
+  // par.I = (value){.val = -0.008, .min = -0.5, .max = 0};
+  par.pid.i = (value){.val = -0.008, .min = -0.5, .max = 0};
   par.rI = (value){.val = 0, .min = -100, .max = 100};
   par.dir = (value){.val = 1, .min = -1, .max = 1};
   par.udt = (value){.val = 1, .min = 0, .max = 1};
@@ -220,7 +234,8 @@ void initInterface(void)
   par.vtoa = (value){.val = 2, .min = 0, .max = 10};
   par.itra = (value){.val = 0, .min = 0, .max = 0.6};
   par.onttl = (value){.val = 0, .min = 0, .max = 1};
-  par.dst = (value){.val = 0.01, .min = 0, .max = 0.1};
+  par.dirttl = (value){.val = 0, .min = -1, .max = 1};
+  par.dst = (value){.val = 0.05, .min = 0, .max = 0.1};
   par.cur = (value){.val = 0, .min = 0, .max = 100};
   par.dcur = (value){.val = 20, .min = 0.001, .max = 20};
   par.mode = (value){.val = 0, .min = 0, .max = 3};
@@ -228,17 +243,23 @@ void initInterface(void)
   // par.aermax = (value){.val = 1000, .min = 0, .max = 10000};
   par.acc_err = (value){.val = 0, .min = -1000, .max = 1000};
   par.goff = (value){.val = 0, .min = 0, .max = 4};
-  par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
-  par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
-  par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
-  par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
+  // par.adc.ch1.avr = (value){.val = 50, .min = 1, .max = 100};
+  // par.adc.ch1.volt = (value){.val = 0, .min = 0, .max = 41000};
+  // par.adc.ch1.coron = (value){.val = 0, .min = 0, .max = 1};
+  // par.adc.ch1.corfactor = (value){.val = 1, .min = 0, .max = 100};
   par.dac.ch1.volt = (value){.val = 0, .min = 0, .max = 5};
-  par.setA = (value){.val = 0, .min = -100, .max = 100};
-  par.lemA = (value){.val = 0, .min = -100, .max = 100};
+  // par.setA = (value){.val = 0, .min = -100, .max = 100};
+  // par.lemA = (value){.val = 0, .min = -100, .max = 100};
   par.imax = (value){.val = 20, .min = 0, .max = 26};
   par.calib = (value){.val = 0, .min = 0, .max = 4};
-  par.lemsh = (value){.val = 0, .min = -1, .max = 1};
-  par.setsh = (value){.val = -0.003, .min = -1, .max = 1};
+  par.lem.ma = (value){.val = 0, .min = 0, .max = 100};
+  par.lem.offs = (value){.val = 0, .min = -1, .max = 1};
+  par.lem.scl = (value){.val = 41.363, .min = 0.00001, .max = 1000};
+  par.set.ma = (value){.val = 0, .min = 0, .max = 100};
+  par.set.offs = (value){.val = -0.003, .min = -1, .max = 1};
+  par.set.scl = (value){.val = 3.316, .min = 0.00001, .max = 100};
+  // par.lemsh = (value){.val = 0, .min = -1, .max = 1};
+  // par.setsh = (value){.val = -0.003, .min = -1, .max = 1};
   par.vg = (value){.val = 0, .min = 0, .max = 5};
   par.gt0 = (value){.val = 0, .min = 0, .max = 10};
   par.gt1 = (value){.val = 0, .min = 0, .max = 10};
@@ -250,6 +271,7 @@ void initInterface(void)
   par.conf.cp = (value){.val = 150, .min = 100, .max = 500};
   par.pid.slp = (value){.val = 0, .min = 0, .max = 2};
   par.pid.is = (value){.val = 0, .min = -2, .max = 0};
+  par.pid.cta = (value){.val = 0.2, .min = 0, .max = 1};
 }
 /*------------------------*/
 /*-----------------------------------------------------------*/

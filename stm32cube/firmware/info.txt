@@ -1,0 +1,5 @@
+v1
+trying to solve problems after restart, and noise and direction changes - still problems, 
+Added cycle period to params.
+v2
+trying to solve problems after restart, and noise and direction changes

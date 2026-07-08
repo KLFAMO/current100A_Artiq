@@ -72,7 +72,6 @@ double lem_A = 0;
 double set_v = 0;
 double set_dir = 1;
 double in_set_v = 0;
-double last_in_set_v = 0;
 double set_A = 0;
 double last_set_A = 0;
 double tmp_set_A = 0;
@@ -95,9 +94,11 @@ double last_adc_set = 0;
 static inline int wait_lem_ready(void);
 static inline int wait_set_ready(void);
 static inline void delay_cycles(volatile uint32_t);
+void update_direction_from_ttl_if_safe(void);
 double get_adc_lem();
 double get_adc_set();
 double get_set_V();
+double get_set_A();
 double get_lem_A();
 int need_change_sign = 0;
 void set_dac_mos(double dac);
@@ -283,7 +284,7 @@ int main(void)
   par.gt1.val = g_tab[10];
   par.gt5.val = g_tab[50];
   par.gt10.val = g_tab[100];
-  par.calib.val = 4; // lem_A calibration
+  // par.calib.val = 4; // lem_A calibration
 
   HAL_GPIO_WritePin(LEM_RDL_GPIO_Port, LEM_RDL_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(ADC_CNV_GPIO_Port, ADC_CNV_Pin, GPIO_PIN_RESET);
@@ -812,8 +813,6 @@ double get_adc_lem(){
 
 double get_adc_set(){
 
-	int adc_val_int=0;
-
 	uint32_t code = 0x000000;
 	double adc_val;
 
@@ -843,12 +842,16 @@ double get_adc_set(){
 
 double get_set_V(){
 	set_v = get_adc_set(); 
-  return (set_v + par.setsh.val) * 3.316; // aqura driver
+  return (set_v + par.set.offs.val) * par.set.scl.val;
+}
+
+double get_set_A(){
+  return get_set_V() * par.vtoa.val;
 }
 
 double get_lem_A(){
 	lem_v = get_adc_lem();
-  return (lem_v + par.lemsh.val )*41.363; // aqura driver
+  return (lem_v + par.lem.offs.val )*par.lem.scl.val;
 }
 
 void set_dac_mos(double dac){
@@ -875,6 +878,24 @@ void set_dac_mos(double dac){
 	// update output
   delay_cycles(6);
 	HAL_GPIO_WritePin(MOS_LDAC_GPIO_Port, MOS_LDAC_Pin, GPIO_PIN_RESET);
+}
+
+void update_direction_from_ttl_if_safe(void)
+{
+    set_dir = (HAL_GPIO_ReadPin(DIR_L2_GPIO_Port, DIR_L2_Pin) == GPIO_PIN_SET) ? 1 : -1;
+    setParam(&par.dirttl, set_dir);
+
+    if (lem_A < par.dst.val) {
+        setParam(&par.dir, set_dir);
+
+        if (set_dir > 0) {
+            L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U;
+            L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;
+        } else {
+            L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;
+            L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U;
+        }
+    }
 }
 
 /* USER CODE END 4 */
@@ -952,7 +973,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if (calib_cycles_cnt > CALIB_POINT_CYCLES){
           calib_cycles_cnt = 0;
           //save results to g_tab
-          g_tab[(int)(calib_i_cnt*10)] = par.vg.val;
+          int idx = (int)round(calib_i_cnt*10.0);
+          g_tab[idx] = par.vg.val;
           //set next value
           calib_i_cnt += 0.1;
           if (par.cur.val > par.imax.val){
@@ -992,8 +1014,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         }
         acc = -acc / 100;
         
-        // par.lemsh.val = 1;
-        par.lemsh.val += acc / 41.363;
+        // par.lem.offs.val = 1;
+        par.lem.offs.val += acc / par.lem.scl.val;
         par.calib.val = 0;
         par.mode.val = mode_tmp; // restore mode
       }
@@ -1002,13 +1024,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	  if (par.mode.val == 0) { // switch off current and reset pi values
       send_adc_cnvs(par.cnvs.val);
-		  par.lemA.val = get_lem_A(); 
-			par.setA.val = get_set_V()*par.vtoa.val;
+      lem_A = get_lem_A();
+		  par.lem.ma.val = lem_A;
+			par.set.ma.val = get_set_A();
 		  set_dac_mos(0);
 		  err = 0;
 		  setParam(&par.acc_err, 0);
-      L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-      L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
+
+      update_direction_from_ttl_if_safe();
+
 	  }
 	  else if (par.mode.val == 1 || par.mode.val == 2) {
 
@@ -1035,41 +1059,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			  set_A = par.cur.val;
 		  }
 
-      // check set current direction
-      // set_dir = (set_A < 0.0) ? -1 : 1;
-      set_dir = (HAL_GPIO_ReadPin(DIR_L2_GPIO_Port, DIR_L2_Pin) == GPIO_PIN_SET) ? 1 : -1;
+      update_direction_from_ttl_if_safe();
 
       // check if set current is in the same direction as measured current
       // if not, set set_A to 0
       set_A = (set_dir == par.dir.val) ? fabs(set_A) : 0;
-
-      // only if measured current is close to 0, change direction if needed
-      if (par.lemA.val < par.dst.val){
-        
-        // set direction same as set_dir
-        setParam(&par.dir, set_dir);
-
-        // set coils direction (hardware)
-        if (par.dir.val==1){
-          // RESET L2_LEFT, SET L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
-        } else if (par.dir.val==-1){
-          // SET L2_LEFT, RESET L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-        } else{
-          // RESET both L2_LEFT and L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-        }
-      }
       
-		  par.setA.val = in_set_v;
-		  par.lemA.val = lem_A;
+		  par.set.ma.val = in_set_v*par.vtoa.val;
+		  par.lem.ma.val = lem_A;
 
       // check if new set_A value
-      if (fabs(last_set_A - set_A) > 0.05){
+      if (fabs(last_set_A - set_A) > par.pid.cta.val){
         is_new_set_A = 1;
         if (par.calib.val < 0.1){
           setParam(&par.acc_err, 0);
@@ -1081,7 +1081,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  last_set_A = set_A;
 
 		  //increase gain I if lower current (because of gate characteristics of transistor)
-		  I = par.I.val;
+		  I = par.pid.i.val;
 
 		  // current change limit for smooth current changes
 		  if ( tmp_set_A > (set_A + par.ermax.val) ){
@@ -1134,9 +1134,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         is_last_gtab_zero = 1;
       }
 
-      I = par.I.val + par.pid.is.val * par.pid.slp.val;
-      if(I > par.I.max) I = par.I.max;
-      if(I < par.I.min) I = par.I.min;
+      I = par.pid.i.val + par.pid.is.val * par.pid.slp.val;
+      if(I > par.pid.i.max) I = par.pid.i.max;
+      if(I < par.pid.i.min) I = par.pid.i.min;
 
       // par.rI.val = I;
       setParam(&par.rI, I);
@@ -1153,24 +1153,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     else if (par.mode.val == 3) {  // set gate voltage manually
 
       send_adc_cnvs(par.cnvs.val);
-		  par.lemA.val = get_lem_A();
+		  lem_A = get_lem_A();
+      par.lem.ma.val = lem_A;
+      par.set.ma.val = get_set_A();
 
-      if (par.lemA.val < par.dst.val){
-        // set coils direction
-        if (par.dir.val>0.5){
-          // RESET L2_LEFT, SET L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin;      // SET
-        } else if (par.dir.val<-0.5){
-          // SET L2_LEFT, RESET L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin;        // SET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-        } else{
-          // RESET both L2_LEFT and L2_RIGHT
-          L2_LEFT_GPIO_Port->BSRR = (uint32_t)L2_LEFT_Pin << 16U; // RESET
-          L2_RIGHT_GPIO_Port->BSRR = (uint32_t)L2_RIGHT_Pin << 16U; // RESET
-        }
-      }
+      update_direction_from_ttl_if_safe();
 
 		  set_dac_mos(par.vg.val);
 	  }
